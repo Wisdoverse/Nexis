@@ -2,7 +2,7 @@
 
 use axum::{
     extract::ws::{Message, WebSocket, WebSocketUpgrade},
-    extract::{Path, State},
+    extract::{Path, Query, State},
     http::StatusCode,
     response::{IntoResponse, Response},
     routing::{get, post},
@@ -14,11 +14,11 @@ use std::sync::Arc;
 use tokio::sync::{mpsc, RwLock, Semaphore};
 use uuid::Uuid;
 
-use crate::search::{SearchError, SearchRequest, SearchService};
 use crate::auth::AuthenticatedUser;
+use crate::search::{SearchError, SearchRequest, SearchService};
 
 #[cfg(feature = "multi-tenant")]
-use crate::auth::{TenantExtractor, TenantStore};
+use crate::auth::TenantStore;
 
 #[derive(Clone)]
 struct AppState {
@@ -129,6 +129,41 @@ struct InviteMemberResponse {
     member_id: String,
 }
 
+#[derive(Debug, Clone, Serialize)]
+struct ListRoomsResponse {
+    rooms: Vec<RoomSummary>,
+    total: usize,
+}
+
+#[derive(Debug, Clone, Serialize)]
+struct RoomSummary {
+    id: String,
+    name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    topic: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    member_count: Option<usize>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+struct ListRoomsQuery {
+    #[serde(default)]
+    limit: Option<usize>,
+    #[serde(default)]
+    offset: Option<usize>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+struct SearchQueryParams {
+    q: String,
+    #[serde(default = "default_limit")]
+    limit: usize,
+    #[serde(default)]
+    min_score: Option<f32>,
+    #[serde(default)]
+    room_id: Option<Uuid>,
+}
+
 #[derive(Debug, Clone, Deserialize)]
 struct SearchApiRequest {
     query: String,
@@ -160,6 +195,15 @@ struct SearchResultItem {
     room_id: Option<Uuid>,
 }
 
+mod error_codes {
+    pub const BAD_REQUEST: &str = "BAD_REQUEST";
+    pub const NOT_FOUND: &str = "NOT_FOUND";
+    pub const INTERNAL_ERROR: &str = "INTERNAL_ERROR";
+    pub const SERVICE_UNAVAILABLE: &str = "SERVICE_UNAVAILABLE";
+    pub const INVALID_QUERY: &str = "INVALID_QUERY";
+    pub const SEARCH_UNAVAILABLE: &str = "SEARCH_UNAVAILABLE";
+}
+
 #[derive(Debug, Clone, Serialize)]
 struct ErrorResponse {
     error: String,
@@ -168,10 +212,31 @@ struct ErrorResponse {
 }
 
 impl ErrorResponse {
+    fn bad_request(message: impl Into<String>) -> Self {
+        Self {
+            error: message.into(),
+            code: Some(error_codes::BAD_REQUEST),
+        }
+    }
+
+    fn not_found(message: impl Into<String>) -> Self {
+        Self {
+            error: message.into(),
+            code: Some(error_codes::NOT_FOUND),
+        }
+    }
+
     fn internal_error() -> Self {
         Self {
             error: "An internal error occurred. Please try again later.".to_string(),
-            code: Some("INTERNAL_ERROR"),
+            code: Some(error_codes::INTERNAL_ERROR),
+        }
+    }
+
+    fn service_unavailable(message: impl Into<String>) -> Self {
+        Self {
+            error: message.into(),
+            code: Some(error_codes::SERVICE_UNAVAILABLE),
         }
     }
 }
@@ -180,15 +245,11 @@ impl From<SearchError> for ErrorResponse {
     fn from(err: SearchError) -> Self {
         tracing::error!("Search error: {}", err);
         match err {
-            SearchError::InvalidQuery(_) => {
-                Self {
-                    error: "Invalid search query".to_string(),
-                    code: Some("INVALID_QUERY"),
-                }
-            }
-            SearchError::EmbeddingError(_) | SearchError::VectorError(_) => {
-                Self::internal_error()
-            }
+            SearchError::InvalidQuery(_) => Self {
+                error: "Invalid search query".to_string(),
+                code: Some("INVALID_QUERY"),
+            },
+            SearchError::EmbeddingError(_) | SearchError::VectorError(_) => Self::internal_error(),
         }
     }
 }
@@ -200,11 +261,11 @@ pub fn build_routes() -> Router {
     Router::new()
         .route("/health", get(health_check))
         .route("/ws", get(websocket_handler))
-        .route("/v1/rooms", post(create_room))
-        .route("/v1/messages", post(send_message))
-        .route("/v1/rooms/:id", get(get_room))
+        .route("/v1/rooms", get(list_rooms).post(create_room))
+        .route("/v1/rooms/:id", get(get_room).delete(delete_room))
         .route("/v1/rooms/:id/invite", post(invite_member))
-        .route("/v1/search", post(search_messages))
+        .route("/v1/messages", post(send_message))
+        .route("/v1/search", get(search_messages_get).post(search_messages))
         .with_state(state)
 }
 
@@ -215,11 +276,11 @@ pub fn build_routes_with_search(search_service: Arc<dyn SearchService>) -> Route
     Router::new()
         .route("/health", get(health_check))
         .route("/ws", get(websocket_handler))
-        .route("/v1/rooms", post(create_room))
-        .route("/v1/messages", post(send_message))
-        .route("/v1/rooms/:id", get(get_room))
+        .route("/v1/rooms", get(list_rooms).post(create_room))
+        .route("/v1/rooms/:id", get(get_room).delete(delete_room))
         .route("/v1/rooms/:id/invite", post(invite_member))
-        .route("/v1/search", post(search_messages))
+        .route("/v1/messages", post(send_message))
+        .route("/v1/search", get(search_messages_get).post(search_messages))
         .with_state(state)
 }
 
@@ -241,7 +302,7 @@ async fn create_room(
     if payload.name.trim().is_empty() {
         return (
             StatusCode::BAD_REQUEST,
-            Json(serde_json::json!({ "error": "room name cannot be empty" })),
+            Json(ErrorResponse::bad_request("room name cannot be empty")),
         )
             .into_response();
     }
@@ -268,7 +329,7 @@ async fn create_room(
     let Ok(_permit) = state.write_gate.clone().acquire_owned().await else {
         return (
             StatusCode::SERVICE_UNAVAILABLE,
-            Json(serde_json::json!({ "error": "service unavailable" })),
+            Json(ErrorResponse::service_unavailable("service unavailable")),
         )
             .into_response();
     };
@@ -290,7 +351,9 @@ async fn send_message(
     {
         return (
             StatusCode::BAD_REQUEST,
-            Json(serde_json::json!({ "error": "roomId, sender, and text are required" })),
+            Json(ErrorResponse::bad_request(
+                "roomId, sender, and text are required",
+            )),
         )
             .into_response();
     }
@@ -299,7 +362,7 @@ async fn send_message(
     if !rooms.contains_key(&payload.room_id) {
         return (
             StatusCode::NOT_FOUND,
-            Json(serde_json::json!({ "error": "room not found" })),
+            Json(ErrorResponse::not_found("room not found")),
         )
             .into_response();
     }
@@ -318,7 +381,7 @@ async fn send_message(
     let Ok(_permit) = state.write_gate.clone().acquire_owned().await else {
         return (
             StatusCode::SERVICE_UNAVAILABLE,
-            Json(serde_json::json!({ "error": "service unavailable" })),
+            Json(ErrorResponse::service_unavailable("service unavailable")),
         )
             .into_response();
     };
@@ -338,7 +401,7 @@ async fn get_room(
     let Some(room) = rooms.get(&id) else {
         return (
             StatusCode::NOT_FOUND,
-            Json(serde_json::json!({ "error": "room not found" })),
+            Json(ErrorResponse::not_found("room not found")),
         )
             .into_response();
     };
@@ -379,7 +442,7 @@ async fn invite_member(
     if payload.member_id.trim().is_empty() {
         return (
             StatusCode::BAD_REQUEST,
-            Json(serde_json::json!({ "error": "memberId is required" })),
+            Json(ErrorResponse::bad_request("memberId is required")),
         )
             .into_response();
     }
@@ -388,7 +451,7 @@ async fn invite_member(
     if !rooms.contains_key(&id) {
         return (
             StatusCode::NOT_FOUND,
-            Json(serde_json::json!({ "error": "room not found" })),
+            Json(ErrorResponse::not_found("room not found")),
         )
             .into_response();
     }
@@ -398,7 +461,7 @@ async fn invite_member(
     let Ok(_permit) = state.write_gate.clone().acquire_owned().await else {
         return (
             StatusCode::SERVICE_UNAVAILABLE,
-            Json(serde_json::json!({ "error": "service unavailable" })),
+            Json(ErrorResponse::service_unavailable("service unavailable")),
         )
             .into_response();
     };
@@ -427,7 +490,7 @@ async fn search_messages(
             StatusCode::SERVICE_UNAVAILABLE,
             Json(ErrorResponse {
                 error: "Search service not configured".to_string(),
-                code: Some("SEARCH_UNAVAILABLE"),
+                code: Some(error_codes::SEARCH_UNAVAILABLE),
             }),
         )
             .into_response();
@@ -438,7 +501,7 @@ async fn search_messages(
             StatusCode::BAD_REQUEST,
             Json(ErrorResponse {
                 error: "Query cannot be empty".to_string(),
-                code: Some("INVALID_QUERY"),
+                code: Some(error_codes::INVALID_QUERY),
             }),
         )
             .into_response();
@@ -482,6 +545,142 @@ async fn search_messages(
         )
             .into_response(),
     }
+}
+
+async fn search_messages_get(
+    State(state): State<SharedState>,
+    _user: AuthenticatedUser,
+    Query(params): Query<SearchQueryParams>,
+) -> impl IntoResponse {
+    let Some(search_service) = state.search_service.as_ref() else {
+        return (
+            StatusCode::SERVICE_UNAVAILABLE,
+            Json(ErrorResponse {
+                error: "Search service not configured".to_string(),
+                code: Some(error_codes::SEARCH_UNAVAILABLE),
+            }),
+        )
+            .into_response();
+    };
+
+    if params.q.trim().is_empty() {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(ErrorResponse {
+                error: "Query parameter 'q' is required".to_string(),
+                code: Some(error_codes::INVALID_QUERY),
+            }),
+        )
+            .into_response();
+    }
+
+    let mut request = SearchRequest::new(&params.q).with_limit(params.limit);
+
+    if let Some(min_score) = params.min_score {
+        request = request.with_min_score(min_score);
+    }
+
+    if let Some(room_id) = params.room_id {
+        request = request.in_room(room_id);
+    }
+
+    match search_service.search(request).await {
+        Ok(response) => {
+            let items: Vec<SearchResultItem> = response
+                .results
+                .into_iter()
+                .filter_map(|r| {
+                    r.content.map(|content| SearchResultItem {
+                        id: r.id,
+                        score: r.score,
+                        content,
+                        room_id: r.room_id,
+                    })
+                })
+                .collect();
+            let total = items.len();
+            let api_response = SearchApiResponse {
+                query: response.query,
+                results: items,
+                total,
+            };
+            (StatusCode::OK, Json(api_response)).into_response()
+        }
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ErrorResponse::from(e)),
+        )
+            .into_response(),
+    }
+}
+
+async fn list_rooms(
+    State(state): State<SharedState>,
+    _user: AuthenticatedUser,
+    Query(query): Query<ListRoomsQuery>,
+) -> impl IntoResponse {
+    let limit = query.limit.unwrap_or(100).min(1000);
+    let offset = query.offset.unwrap_or(0);
+
+    let rooms = state.rooms.read().await;
+    let members = state.room_members.read().await;
+
+    let all_rooms: Vec<RoomSummary> = rooms
+        .values()
+        .skip(offset)
+        .take(limit)
+        .map(|room| {
+            let member_count = members.get(&room.id).map(|m| m.len());
+            RoomSummary {
+                id: room.id.clone(),
+                name: room.name.clone(),
+                topic: room.topic.clone(),
+                member_count,
+            }
+        })
+        .collect();
+
+    let total = rooms.len();
+
+    let response = ListRoomsResponse {
+        rooms: all_rooms,
+        total,
+    };
+
+    (StatusCode::OK, Json(response)).into_response()
+}
+
+async fn delete_room(
+    State(state): State<SharedState>,
+    _user: AuthenticatedUser,
+    Path(id): Path<String>,
+) -> impl IntoResponse {
+    let Ok(_permit) = state.write_gate.clone().acquire_owned().await else {
+        return (
+            StatusCode::SERVICE_UNAVAILABLE,
+            Json(ErrorResponse::service_unavailable("service unavailable")),
+        )
+            .into_response();
+    };
+
+    let mut rooms = state.rooms.write().await;
+    if rooms.remove(&id).is_none() {
+        return (
+            StatusCode::NOT_FOUND,
+            Json(ErrorResponse::not_found("room not found")),
+        )
+            .into_response();
+    }
+    drop(rooms);
+
+    let mut messages = state.room_messages.write().await;
+    messages.remove(&id);
+    drop(messages);
+
+    let mut members = state.room_members.write().await;
+    members.remove(&id);
+
+    (StatusCode::NO_CONTENT, ()).into_response()
 }
 
 /// Handle WebSocket connection
@@ -550,7 +749,7 @@ mod tests {
     async fn create_room_returns_201_and_room_identity() {
         use crate::auth::JwtConfig;
         let token = JwtConfig::test_token("test-user");
-        
+
         let app = build_routes();
         let response = app
             .oneshot(
@@ -584,7 +783,7 @@ mod tests {
     async fn send_message_returns_404_for_unknown_room() {
         use crate::auth::JwtConfig;
         let token = JwtConfig::test_token("test-user");
-        
+
         let app = build_routes();
         let response = app
             .oneshot(
@@ -613,7 +812,7 @@ mod tests {
     async fn get_room_returns_messages_after_send() {
         use crate::auth::JwtConfig;
         let token = JwtConfig::test_token("test-user");
-        
+
         let app = build_routes();
 
         let create_response = app

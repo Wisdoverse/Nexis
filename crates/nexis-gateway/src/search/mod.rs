@@ -7,4 +7,6 @@
 
 mod service;
 
-pub use service::{SearchError, SearchRequest, SearchResponse, SearchService, SemanticSearchService};
+pub use service::{
+    SearchError, SearchRequest, SearchResponse, SearchService, SemanticSearchService,
+};

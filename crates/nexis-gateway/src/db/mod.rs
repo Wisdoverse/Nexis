@@ -2,10 +2,11 @@
 
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
-use uuid::Uuid;
 #[cfg(feature = "persistence-sqlx")]
 use sqlx::{postgres::PgPoolOptions, PgPool, Row};
 use thiserror::Error;
+#[cfg(any(test, feature = "persistence-sqlx"))]
+use uuid::Uuid;
 
 #[cfg(test)]
 use std::collections::HashMap;
@@ -841,8 +842,7 @@ impl MessageRepository for InMemoryMessageRepository {
             .await
             .values()
             .filter(|message| {
-                message.room_id == room_id
-                    && message.tenant_id.as_deref() == Some(tenant_id)
+                message.room_id == room_id && message.tenant_id.as_deref() == Some(tenant_id)
             })
             .cloned()
             .collect::<Vec<_>>();
@@ -989,21 +989,33 @@ mod tests {
             .unwrap();
 
         assert_eq!(
-            repository.get_tenant("tenant_a", &tenant_a_room.id).await.unwrap(),
+            repository
+                .get_tenant("tenant_a", &tenant_a_room.id)
+                .await
+                .unwrap(),
             Some(tenant_a_room.clone())
         );
         assert_eq!(
-            repository.get_tenant("tenant_b", &tenant_b_room.id).await.unwrap(),
+            repository
+                .get_tenant("tenant_b", &tenant_b_room.id)
+                .await
+                .unwrap(),
             Some(tenant_b_room.clone())
         );
 
         assert_eq!(
-            repository.get_tenant("tenant_a", &tenant_b_room.id).await.unwrap(),
+            repository
+                .get_tenant("tenant_a", &tenant_b_room.id)
+                .await
+                .unwrap(),
             None,
             "Cross-tenant access should return None"
         );
         assert_eq!(
-            repository.get_tenant("tenant_b", &tenant_a_room.id).await.unwrap(),
+            repository
+                .get_tenant("tenant_b", &tenant_a_room.id)
+                .await
+                .unwrap(),
             None,
             "Cross-tenant access should return None"
         );
@@ -1032,25 +1044,40 @@ mod tests {
             .unwrap();
 
         assert_eq!(
-            repository.get_tenant("tenant_a", &tenant_a_msg.id).await.unwrap(),
+            repository
+                .get_tenant("tenant_a", &tenant_a_msg.id)
+                .await
+                .unwrap(),
             Some(tenant_a_msg.clone())
         );
         assert_eq!(
-            repository.get_tenant("tenant_b", &tenant_b_msg.id).await.unwrap(),
+            repository
+                .get_tenant("tenant_b", &tenant_b_msg.id)
+                .await
+                .unwrap(),
             Some(tenant_b_msg.clone())
         );
 
         assert_eq!(
-            repository.get_tenant("tenant_a", &tenant_b_msg.id).await.unwrap(),
+            repository
+                .get_tenant("tenant_a", &tenant_b_msg.id)
+                .await
+                .unwrap(),
             None,
             "Cross-tenant access should return None"
         );
 
-        let tenant_a_messages = repository.list_by_room_tenant("tenant_a", "room_1").await.unwrap();
+        let tenant_a_messages = repository
+            .list_by_room_tenant("tenant_a", "room_1")
+            .await
+            .unwrap();
         assert_eq!(tenant_a_messages.len(), 1);
         assert_eq!(tenant_a_messages[0].content, "hello from a");
 
-        let tenant_b_messages = repository.list_by_room_tenant("tenant_b", "room_1").await.unwrap();
+        let tenant_b_messages = repository
+            .list_by_room_tenant("tenant_b", "room_1")
+            .await
+            .unwrap();
         assert_eq!(tenant_b_messages.len(), 1);
         assert_eq!(tenant_b_messages[0].content, "hello from b");
     }
@@ -1070,21 +1097,33 @@ mod tests {
             .unwrap();
 
         assert_eq!(
-            repository.get_tenant("tenant_a", &tenant_a_member.id).await.unwrap(),
+            repository
+                .get_tenant("tenant_a", &tenant_a_member.id)
+                .await
+                .unwrap(),
             Some(tenant_a_member.clone())
         );
         assert_eq!(
-            repository.get_tenant("tenant_b", &tenant_b_member.id).await.unwrap(),
+            repository
+                .get_tenant("tenant_b", &tenant_b_member.id)
+                .await
+                .unwrap(),
             Some(tenant_b_member.clone())
         );
 
         assert_eq!(
-            repository.get_tenant("tenant_a", &tenant_b_member.id).await.unwrap(),
+            repository
+                .get_tenant("tenant_a", &tenant_b_member.id)
+                .await
+                .unwrap(),
             None,
             "Cross-tenant access should return None"
         );
         assert_eq!(
-            repository.get_tenant("tenant_b", &tenant_a_member.id).await.unwrap(),
+            repository
+                .get_tenant("tenant_b", &tenant_a_member.id)
+                .await
+                .unwrap(),
             None,
             "Cross-tenant access should return None"
         );
@@ -1105,16 +1144,37 @@ mod tests {
             .await
             .unwrap();
 
-        let room_result = room_repo.get_tenant("tenant_victim", &room_a.id).await.unwrap();
-        assert_eq!(room_result, None, "Victim tenant should not see evil tenant's room");
+        let room_result = room_repo
+            .get_tenant("tenant_victim", &room_a.id)
+            .await
+            .unwrap();
+        assert_eq!(
+            room_result, None,
+            "Victim tenant should not see evil tenant's room"
+        );
 
-        let msg_result = msg_repo.get_tenant("tenant_victim", &msg_a.id).await.unwrap();
-        assert_eq!(msg_result, None, "Victim tenant should not see evil tenant's message");
+        let msg_result = msg_repo
+            .get_tenant("tenant_victim", &msg_a.id)
+            .await
+            .unwrap();
+        assert_eq!(
+            msg_result, None,
+            "Victim tenant should not see evil tenant's message"
+        );
 
         let victim_rooms = room_repo.list_tenant("tenant_victim").await.unwrap();
-        assert!(victim_rooms.is_empty(), "Victim should have empty room list");
+        assert!(
+            victim_rooms.is_empty(),
+            "Victim should have empty room list"
+        );
 
-        let victim_messages = msg_repo.list_by_room_tenant("tenant_victim", &room_a.id).await.unwrap();
-        assert!(victim_messages.is_empty(), "Victim should have empty message list for evil room");
+        let victim_messages = msg_repo
+            .list_by_room_tenant("tenant_victim", &room_a.id)
+            .await
+            .unwrap();
+        assert!(
+            victim_messages.is_empty(),
+            "Victim should have empty message list for evil room"
+        );
     }
 }

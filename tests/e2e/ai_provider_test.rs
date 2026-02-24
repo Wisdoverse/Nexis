@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use httpmock::prelude::*;
-use nexis_runtime::{AIProvider, GenerateRequest, OpenAIProvider, ProviderRegistry};
+use nexis_runtime::{GenerateRequest, OpenAIProvider, ProviderRegistry};
 
 #[tokio::test]
 #[ignore = "e2e-ish integration using httpmock"]

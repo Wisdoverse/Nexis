@@ -317,16 +317,31 @@ async fn run_repl_command(state: &mut ReplState, command: ReplCommand) -> Result
             })?;
             let sent = state
                 .client
-                .reply_message(room_id.to_string(), member_id.to_string(), message_id.clone(), message)
+                .reply_message(
+                    room_id.to_string(),
+                    member_id.to_string(),
+                    message_id.clone(),
+                    message,
+                )
                 .await?;
-            println!("{} {} (reply to {})", "message sent:".green(), sent.id.cyan(), message_id);
+            println!(
+                "{} {} (reply to {})",
+                "message sent:".green(),
+                sent.id.cyan(),
+                message_id
+            );
         }
         ReplCommand::InviteMember(room_id, member_id) => {
             let _ = state.member_id.as_deref().ok_or_else(|| {
                 CliError::InvalidArgument("login required before `invite-member`".to_string())
             })?;
             let _result = state.client.invite_member(&room_id, &member_id).await?;
-            println!("{} {} to room {}", "invited".green(), member_id.cyan(), room_id.cyan());
+            println!(
+                "{} {} to room {}",
+                "invited".green(),
+                member_id.cyan(),
+                room_id.cyan()
+            );
         }
         ReplCommand::ListRooms => {
             if state.known_rooms.is_empty() {
@@ -350,9 +365,15 @@ async fn run_repl_command(state: &mut ReplState, command: ReplCommand) -> Result
             print_members(&room, state.member_id.as_deref());
         }
         ReplCommand::Search(query) => {
-            let room_id = state.current_room.as_ref().and_then(|r| r.parse::<uuid::Uuid>().ok());
+            let room_id = state
+                .current_room
+                .as_ref()
+                .and_then(|r| r.parse::<uuid::Uuid>().ok());
             let response = state.client.search(&query, 10, room_id, None).await?;
-            println!("{}", format!("Search results for: {}", response.query).bright_blue());
+            println!(
+                "{}",
+                format!("Search results for: {}", response.query).bright_blue()
+            );
             if response.results.is_empty() {
                 println!("{}", "No results found.".yellow());
             } else {
@@ -504,7 +525,7 @@ mod tests {
         let lo_candidates = complete_candidates("lo");
         assert!(lo_candidates.contains("login"));
         assert!(lo_candidates.contains("logout"));
-        
+
         let li_candidates = complete_candidates("li");
         assert!(li_candidates.contains("list-rooms"));
         assert!(li_candidates.contains("list-members"));

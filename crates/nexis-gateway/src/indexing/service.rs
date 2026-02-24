@@ -14,13 +14,23 @@ use super::retry::{with_retry, RetryConfig};
 #[async_trait]
 pub trait IndexingService: Send + Sync {
     /// Index a message for semantic search
-    async fn index_message(&self, message: &str, room_id: Uuid, metadata: serde_json::Value) -> IndexingResult<Uuid>;
+    async fn index_message(
+        &self,
+        message: &str,
+        room_id: Uuid,
+        metadata: serde_json::Value,
+    ) -> IndexingResult<Uuid>;
 
     /// Search for similar messages
     async fn search(&self, query: &str, limit: usize) -> IndexingResult<Vec<SearchResult>>;
 
     /// Search within a specific room
-    async fn search_in_room(&self, query: &str, room_id: Uuid, limit: usize) -> IndexingResult<Vec<SearchResult>>;
+    async fn search_in_room(
+        &self,
+        query: &str,
+        room_id: Uuid,
+        limit: usize,
+    ) -> IndexingResult<Vec<SearchResult>>;
 }
 
 /// Message indexer configuration
@@ -58,7 +68,11 @@ impl MessageIndexer {
         embedding_provider: Arc<dyn EmbeddingProvider>,
         config: IndexerConfig,
     ) -> Self {
-        Self { vector_store, embedding_provider, config }
+        Self {
+            vector_store,
+            embedding_provider,
+            config,
+        }
     }
 
     /// Create with default configuration
@@ -91,7 +105,12 @@ impl MessageIndexer {
 
 #[async_trait]
 impl IndexingService for MessageIndexer {
-    async fn index_message(&self, message: &str, room_id: Uuid, metadata: serde_json::Value) -> IndexingResult<Uuid> {
+    async fn index_message(
+        &self,
+        message: &str,
+        room_id: Uuid,
+        metadata: serde_json::Value,
+    ) -> IndexingResult<Uuid> {
         debug!("Indexing message for room: {}", room_id);
 
         let embedding = self.generate_embedding(message).await?;
@@ -103,7 +122,10 @@ impl IndexingService for MessageIndexer {
 
         let doc = Document::new(vector, message.to_string(), metadata);
 
-        self.vector_store.upsert(doc).await.map_err(|e| IndexingError::StorageError(e.to_string()))
+        self.vector_store
+            .upsert(doc)
+            .await
+            .map_err(|e| IndexingError::StorageError(e.to_string()))
     }
 
     async fn search(&self, query: &str, limit: usize) -> IndexingResult<Vec<SearchResult>> {
@@ -113,10 +135,18 @@ impl IndexingService for MessageIndexer {
         let query_vector = Vector::new(embedding);
         let search_query = SearchQuery::new(query_vector).with_limit(limit);
 
-        self.vector_store.search(search_query).await.map_err(|e| IndexingError::StorageError(e.to_string()))
+        self.vector_store
+            .search(search_query)
+            .await
+            .map_err(|e| IndexingError::StorageError(e.to_string()))
     }
 
-    async fn search_in_room(&self, query: &str, room_id: Uuid, limit: usize) -> IndexingResult<Vec<SearchResult>> {
+    async fn search_in_room(
+        &self,
+        query: &str,
+        room_id: Uuid,
+        limit: usize,
+    ) -> IndexingResult<Vec<SearchResult>> {
         debug!("Searching in room {} for: {}", room_id, query);
 
         let embedding = self.generate_embedding(query).await?;
@@ -125,7 +155,10 @@ impl IndexingService for MessageIndexer {
             .with_limit(limit)
             .with_filter(SearchFilter::new().with_room(room_id));
 
-        self.vector_store.search(search_query).await.map_err(|e| IndexingError::StorageError(e.to_string()))
+        self.vector_store
+            .search(search_query)
+            .await
+            .map_err(|e| IndexingError::StorageError(e.to_string()))
     }
 }
 
@@ -162,7 +195,9 @@ mod tests {
         let room_id = Uuid::new_v4();
         let metadata = serde_json::json!({"sender": "test"});
 
-        let result = indexer.index_message("Hello world", room_id, metadata).await;
+        let result = indexer
+            .index_message("Hello world", room_id, metadata)
+            .await;
         assert!(result.is_ok());
     }
 
@@ -173,7 +208,10 @@ mod tests {
         let indexer = MessageIndexer::with_defaults(store, embedding);
 
         let room_id = Uuid::new_v4();
-        indexer.index_message("Test message", room_id, serde_json::json!({})).await.unwrap();
+        indexer
+            .index_message("Test message", room_id, serde_json::json!({}))
+            .await
+            .unwrap();
 
         let results = indexer.search("Test", 10).await;
         assert!(results.is_ok());
@@ -186,7 +224,10 @@ mod tests {
         let indexer = MessageIndexer::with_defaults(store, embedding);
 
         let room_id = Uuid::new_v4();
-        indexer.index_message("Test message", room_id, serde_json::json!({})).await.unwrap();
+        indexer
+            .index_message("Test message", room_id, serde_json::json!({}))
+            .await
+            .unwrap();
 
         let results = indexer.search_in_room("Test", room_id, 10).await;
         assert!(results.is_ok());

@@ -29,18 +29,14 @@ pub enum TenantError {
 impl IntoResponse for TenantError {
     fn into_response(self) -> Response {
         let (status, message) = match self {
-            TenantError::MissingTenant => {
-                (StatusCode::BAD_REQUEST, "Missing tenant context")
-            }
+            TenantError::MissingTenant => (StatusCode::BAD_REQUEST, "Missing tenant context"),
             TenantError::InvalidHeaderFormat => {
                 (StatusCode::BAD_REQUEST, "Invalid tenant header format")
             }
             TenantError::CrossTenantAccess { .. } => {
                 (StatusCode::FORBIDDEN, "Cross-tenant access denied")
             }
-            TenantError::TenantRequired => {
-                (StatusCode::BAD_REQUEST, "Tenant ID is required")
-            }
+            TenantError::TenantRequired => (StatusCode::BAD_REQUEST, "Tenant ID is required"),
         };
         (status, Json(json!({ "error": message }))).into_response()
     }
@@ -207,10 +203,8 @@ mod tests {
 
     #[test]
     fn tenant_store_list_tenants_returns_all() {
-        let store = TenantStore::with_tenants(vec![
-            "tenant_123".to_string(),
-            "tenant_456".to_string(),
-        ]);
+        let store =
+            TenantStore::with_tenants(vec!["tenant_123".to_string(), "tenant_456".to_string()]);
         let tenants = store.list_tenants();
         assert_eq!(tenants.len(), 2);
         assert!(tenants.contains(&"tenant_123".to_string()));

@@ -45,7 +45,11 @@ impl Default for QdrantConfig {
 
 impl QdrantConfig {
     /// Create a new configuration
-    pub fn new(url: impl Into<String>, collection_name: impl Into<String>, dimension: usize) -> Self {
+    pub fn new(
+        url: impl Into<String>,
+        collection_name: impl Into<String>,
+        dimension: usize,
+    ) -> Self {
         Self {
             url: url.into(),
             collection_name: collection_name.into(),
@@ -84,7 +88,9 @@ impl QdrantVectorStore {
 
         builder = builder.timeout(Duration::from_secs(config.timeout_secs));
 
-        let client = builder.build().map_err(|e| VectorError::connection(e.to_string()))?;
+        let client = builder
+            .build()
+            .map_err(|e| VectorError::connection(e.to_string()))?;
 
         let store = Self { client, config };
         store.ensure_collection().await?;
@@ -108,15 +114,19 @@ impl QdrantVectorStore {
             .await
             .map_err(|e| VectorError::backend("qdrant", e.to_string()))?;
 
-        let exists = collections.collections.iter().any(|c| c.name == *collection_name);
+        let exists = collections
+            .collections
+            .iter()
+            .any(|c| c.name == *collection_name);
 
         if !exists {
             info!(collection = %collection_name, dimension = self.config.dimension, "Creating Qdrant collection");
 
             self.client
                 .create_collection(
-                    CreateCollectionBuilder::new(collection_name)
-                        .vectors_config(VectorParamsBuilder::new(self.config.dimension as u64, Distance::Cosine)),
+                    CreateCollectionBuilder::new(collection_name).vectors_config(
+                        VectorParamsBuilder::new(self.config.dimension as u64, Distance::Cosine),
+                    ),
                 )
                 .await
                 .map_err(|e| VectorError::backend("qdrant", e.to_string()))?;
@@ -161,7 +171,10 @@ impl QdrantVectorStore {
     }
 
     /// Get string value from payload
-    fn get_string_value(payload: &HashMap<String, qdrant_client::qdrant::Value>, key: &str) -> Option<String> {
+    fn get_string_value(
+        payload: &HashMap<String, qdrant_client::qdrant::Value>,
+        key: &str,
+    ) -> Option<String> {
         payload.get(key).and_then(|v| {
             v.kind.as_ref().and_then(|k| match k {
                 qdrant_client::qdrant::value::Kind::StringValue(s) => Some(s.clone()),
@@ -171,7 +184,10 @@ impl QdrantVectorStore {
     }
 
     /// Get list value from payload
-    fn get_list_value(payload: &HashMap<String, qdrant_client::qdrant::Value>, key: &str) -> Vec<String> {
+    fn get_list_value(
+        payload: &HashMap<String, qdrant_client::qdrant::Value>,
+        key: &str,
+    ) -> Vec<String> {
         payload
             .get(key)
             .and_then(|v| {
@@ -181,7 +197,9 @@ impl QdrantVectorStore {
                             .iter()
                             .filter_map(|v| {
                                 v.kind.as_ref().and_then(|k| match k {
-                                    qdrant_client::qdrant::value::Kind::StringValue(s) => Some(s.clone()),
+                                    qdrant_client::qdrant::value::Kind::StringValue(s) => {
+                                        Some(s.clone())
+                                    }
                                     _ => None,
                                 })
                             })
@@ -198,9 +216,11 @@ impl QdrantVectorStore {
     fn extract_vector(vectors: &Option<qdrant_client::qdrant::VectorsOutput>) -> Option<Vec<f32>> {
         vectors.as_ref().and_then(|v| match &v.vectors_options {
             Some(VectorsOptions::Vector(vo)) => Some(vo.data.clone()),
-            Some(VectorsOptions::Vectors(named_vectors)) => {
-                named_vectors.vectors.values().next().map(|vo| vo.data.clone())
-            }
+            Some(VectorsOptions::Vectors(named_vectors)) => named_vectors
+                .vectors
+                .values()
+                .next()
+                .map(|vo| vo.data.clone()),
             None => None,
         })
     }
@@ -220,14 +240,14 @@ impl QdrantVectorStore {
 
         let content = Self::get_string_value(&payload, "content").unwrap_or_default();
 
-        let room_id = Self::get_string_value(&payload, "room_id")
-            .and_then(|s| Uuid::parse_str(&s).ok());
+        let room_id =
+            Self::get_string_value(&payload, "room_id").and_then(|s| Uuid::parse_str(&s).ok());
 
-        let user_id = Self::get_string_value(&payload, "user_id")
-            .and_then(|s| Uuid::parse_str(&s).ok());
+        let user_id =
+            Self::get_string_value(&payload, "user_id").and_then(|s| Uuid::parse_str(&s).ok());
 
-        let message_id = Self::get_string_value(&payload, "message_id")
-            .and_then(|s| Uuid::parse_str(&s).ok());
+        let message_id =
+            Self::get_string_value(&payload, "message_id").and_then(|s| Uuid::parse_str(&s).ok());
 
         let tags = Self::get_list_value(&payload, "tags");
 
@@ -274,7 +294,10 @@ impl VectorStore for QdrantVectorStore {
         let id = document.id;
 
         self.client
-            .upsert_points(UpsertPointsBuilder::new(&self.config.collection_name, vec![point]))
+            .upsert_points(UpsertPointsBuilder::new(
+                &self.config.collection_name,
+                vec![point],
+            ))
             .await
             .map_err(|e| VectorError::backend("qdrant", e.to_string()))?;
 
@@ -310,7 +333,10 @@ impl VectorStore for QdrantVectorStore {
 
         if !points.is_empty() {
             self.client
-                .upsert_points(UpsertPointsBuilder::new(&self.config.collection_name, points))
+                .upsert_points(UpsertPointsBuilder::new(
+                    &self.config.collection_name,
+                    points,
+                ))
                 .await
                 .map_err(|e| VectorError::backend("qdrant", e.to_string()))?;
         }
@@ -325,9 +351,11 @@ impl VectorStore for QdrantVectorStore {
 
         let response = self
             .client
-            .get_points(GetPointsBuilder::new(&self.config.collection_name, point_ids.clone())
-                .with_vectors(true)
-                .with_payload(true))
+            .get_points(
+                GetPointsBuilder::new(&self.config.collection_name, point_ids.clone())
+                    .with_vectors(true)
+                    .with_payload(true),
+            )
             .await
             .map_err(|e| VectorError::backend("qdrant", e.to_string()))?;
 
@@ -350,9 +378,11 @@ impl VectorStore for QdrantVectorStore {
 
         let response = self
             .client
-            .get_points(GetPointsBuilder::new(&self.config.collection_name, point_ids)
-                .with_vectors(true)
-                .with_payload(true))
+            .get_points(
+                GetPointsBuilder::new(&self.config.collection_name, point_ids)
+                    .with_vectors(true)
+                    .with_payload(true),
+            )
             .await
             .map_err(|e| VectorError::backend("qdrant", e.to_string()))?;
 
@@ -375,8 +405,7 @@ impl VectorStore for QdrantVectorStore {
         }];
 
         self.client
-            .delete_points(DeletePointsBuilder::new(&self.config.collection_name)
-                .points(point_ids))
+            .delete_points(DeletePointsBuilder::new(&self.config.collection_name).points(point_ids))
             .await
             .map_err(|e| VectorError::backend("qdrant", e.to_string()))?;
 
@@ -393,8 +422,7 @@ impl VectorStore for QdrantVectorStore {
             .collect();
 
         self.client
-            .delete_points(DeletePointsBuilder::new(&self.config.collection_name)
-                .points(point_ids))
+            .delete_points(DeletePointsBuilder::new(&self.config.collection_name).points(point_ids))
             .await
             .map_err(|e| VectorError::backend("qdrant", e.to_string()))?;
 
@@ -459,10 +487,7 @@ impl VectorStore for QdrantVectorStore {
             .await
             .map_err(|e| VectorError::backend("qdrant", e.to_string()))?;
 
-        let count = result
-            .result
-            .and_then(|r| r.points_count)
-            .unwrap_or(0);
+        let count = result.result.and_then(|r| r.points_count).unwrap_or(0);
 
         Ok(count as usize)
     }
@@ -474,9 +499,11 @@ impl VectorStore for QdrantVectorStore {
 
         let response = self
             .client
-            .get_points(GetPointsBuilder::new(&self.config.collection_name, point_ids)
-                .with_vectors(false)
-                .with_payload(false))
+            .get_points(
+                GetPointsBuilder::new(&self.config.collection_name, point_ids)
+                    .with_vectors(false)
+                    .with_payload(false),
+            )
             .await
             .map_err(|e| VectorError::backend("qdrant", e.to_string()))?;
 

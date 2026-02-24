@@ -159,12 +159,7 @@ impl VectorStore for InMemoryVectorStore {
         let docs = self.documents.read().await;
         let mut results: Vec<SearchResult> = docs
             .values()
-            .filter(|doc| {
-                query
-                    .filter
-                    .as_ref()
-                    .is_none_or(|f| f.matches(doc))
-            })
+            .filter(|doc| query.filter.as_ref().is_none_or(|f| f.matches(doc)))
             .map(|doc| {
                 let score = query.vector.cosine_similarity(&doc.vector);
                 SearchResult::new(doc.clone(), score)
@@ -303,11 +298,16 @@ mod tests {
     async fn test_search_with_min_score() {
         let store = InMemoryVectorStore::new(3);
 
-        store.upsert(create_test_doc("doc1", vec![1.0, 0.0, 0.0])).await.unwrap();
-        store.upsert(create_test_doc("doc2", vec![0.0, 0.0, 1.0])).await.unwrap();
+        store
+            .upsert(create_test_doc("doc1", vec![1.0, 0.0, 0.0]))
+            .await
+            .unwrap();
+        store
+            .upsert(create_test_doc("doc2", vec![0.0, 0.0, 1.0]))
+            .await
+            .unwrap();
 
-        let query = SearchQuery::new(Vector::new(vec![1.0, 0.0, 0.0]))
-            .with_min_score(0.9);
+        let query = SearchQuery::new(Vector::new(vec![1.0, 0.0, 0.0])).with_min_score(0.9);
 
         let results = store.search(query).await.unwrap();
         assert_eq!(results.len(), 1);
@@ -327,10 +327,9 @@ mod tests {
 
         store.upsert(doc).await.unwrap();
 
-        let filter = SearchFilter::new()
-            .with_time_range(now - Duration::hours(1), now + Duration::hours(1));
-        let query = SearchQuery::new(Vector::new(vec![1.0, 0.0, 0.0]))
-            .with_filter(filter);
+        let filter =
+            SearchFilter::new().with_time_range(now - Duration::hours(1), now + Duration::hours(1));
+        let query = SearchQuery::new(Vector::new(vec![1.0, 0.0, 0.0])).with_filter(filter);
 
         let results = store.search(query).await.unwrap();
         assert_eq!(results.len(), 1);

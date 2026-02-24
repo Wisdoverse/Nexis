@@ -179,7 +179,8 @@ mod tests {
             multiplier: 2.0,
         };
 
-        let result: Result<&str, &str> = with_retry(|| async { Err("always fails") }, &config).await;
+        let result: Result<&str, &str> =
+            with_retry(|| async { Err("always fails") }, &config).await;
 
         assert_eq!(result, Err("always fails"));
     }

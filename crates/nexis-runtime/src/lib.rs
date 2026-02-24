@@ -560,7 +560,7 @@ mod tests {
             .mock_async(|when, then| {
                 when.method(POST)
                     .path("/v1/generate")
-                    .matches(first_call_only);
+                    .is_true(first_call_only);
                 then.status(500).body("upstream timeout");
             })
             .await;

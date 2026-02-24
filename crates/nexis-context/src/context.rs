@@ -76,9 +76,6 @@ impl ConversationContext {
     }
 
     pub fn total_tokens(&self) -> usize {
-        self.messages
-            .iter()
-            .filter_map(|m| m.token_count)
-            .sum()
+        self.messages.iter().filter_map(|m| m.token_count).sum()
     }
 }

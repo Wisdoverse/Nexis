@@ -228,7 +228,8 @@ impl CliClient {
         sender: String,
         text: String,
     ) -> Result<SendMessageResponse, CliError> {
-        self.send_message_with_reply(room_id, sender, text, None).await
+        self.send_message_with_reply(room_id, sender, text, None)
+            .await
     }
 
     pub async fn send_message_with_reply(
@@ -275,7 +276,8 @@ impl CliClient {
                 "reply_to message id cannot be empty".to_string(),
             ));
         }
-        self.send_message_with_reply(room_id, sender, text, Some(reply_to)).await
+        self.send_message_with_reply(room_id, sender, text, Some(reply_to))
+            .await
     }
 
     pub async fn get_room(&self, room_id: &str) -> Result<RoomInfoResponse, CliError> {
@@ -305,7 +307,8 @@ impl CliClient {
         let payload = InviteMemberRequest {
             member_id: member_id.to_string(),
         };
-        self.post_json(&format!("/v1/rooms/{room_id}/invite"), &payload).await
+        self.post_json(&format!("/v1/rooms/{room_id}/invite"), &payload)
+            .await
     }
 
     pub async fn search(

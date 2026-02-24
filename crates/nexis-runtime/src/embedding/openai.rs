@@ -8,7 +8,10 @@ use serde::{Deserialize, Serialize};
 use std::env;
 use std::time::Duration;
 
-use crate::embedding::{BatchEmbeddingRequest, BatchEmbeddingResponse, EmbeddingProvider, EmbeddingRequest, EmbeddingResponse, EmbeddingUsage, DEFAULT_EMBEDDING_DIMENSION};
+use crate::embedding::{
+    BatchEmbeddingRequest, BatchEmbeddingResponse, EmbeddingProvider, EmbeddingRequest,
+    EmbeddingResponse, EmbeddingUsage, DEFAULT_EMBEDDING_DIMENSION,
+};
 use crate::ProviderError;
 
 const OPENAI_API_BASE: &str = "https://api.openai.com/v1";
@@ -166,7 +169,8 @@ impl EmbeddingProvider for OpenAIEmbeddingProvider {
                     if retriable {
                         return Err(ProviderError::RetryExhausted {
                             attempts: attempt + 1,
-                            last_error: last_error.unwrap_or_else(|| "unknown retry error".to_string()),
+                            last_error: last_error
+                                .unwrap_or_else(|| "unknown retry error".to_string()),
                         });
                     }
                     return Err(err);
@@ -180,7 +184,10 @@ impl EmbeddingProvider for OpenAIEmbeddingProvider {
         })
     }
 
-    async fn embed_batch(&self, req: BatchEmbeddingRequest) -> Result<BatchEmbeddingResponse, ProviderError> {
+    async fn embed_batch(
+        &self,
+        req: BatchEmbeddingRequest,
+    ) -> Result<BatchEmbeddingResponse, ProviderError> {
         if req.texts.is_empty() {
             return Ok(BatchEmbeddingResponse {
                 embeddings: Vec::new(),
@@ -211,7 +218,8 @@ impl EmbeddingProvider for OpenAIEmbeddingProvider {
                     if retriable {
                         return Err(ProviderError::RetryExhausted {
                             attempts: attempt + 1,
-                            last_error: last_error.unwrap_or_else(|| "unknown retry error".to_string()),
+                            last_error: last_error
+                                .unwrap_or_else(|| "unknown retry error".to_string()),
                         });
                     }
                     return Err(err);
@@ -227,7 +235,10 @@ impl EmbeddingProvider for OpenAIEmbeddingProvider {
 }
 
 impl OpenAIEmbeddingProvider {
-    async fn try_embed(&self, body: &EmbeddingRequestBody) -> Result<EmbeddingResponse, ProviderError> {
+    async fn try_embed(
+        &self,
+        body: &EmbeddingRequestBody,
+    ) -> Result<EmbeddingResponse, ProviderError> {
         let response = self
             .client
             .post(self.endpoint("/embeddings"))
@@ -254,9 +265,10 @@ impl OpenAIEmbeddingProvider {
             .await
             .map_err(|e| ProviderError::Decode(e.to_string()))?;
 
-        let data = resp.data.first().ok_or_else(|| {
-            ProviderError::Decode("No embedding data in response".to_string())
-        })?;
+        let data = resp
+            .data
+            .first()
+            .ok_or_else(|| ProviderError::Decode("No embedding data in response".to_string()))?;
 
         Ok(EmbeddingResponse {
             embedding: data.embedding.clone(),
@@ -269,7 +281,10 @@ impl OpenAIEmbeddingProvider {
         })
     }
 
-    async fn try_embed_batch(&self, body: &EmbeddingRequestBody) -> Result<BatchEmbeddingResponse, ProviderError> {
+    async fn try_embed_batch(
+        &self,
+        body: &EmbeddingRequestBody,
+    ) -> Result<BatchEmbeddingResponse, ProviderError> {
         let response = self
             .client
             .post(self.endpoint("/embeddings"))
@@ -422,7 +437,8 @@ mod tests {
 
         // Create a small test embedding response
         let embedding_array: Vec<String> = (0..10).map(|_| "0.1".to_string()).collect();
-        let response_body = format!(r#"{{
+        let response_body = format!(
+            r#"{{
             "object": "list",
             "data": [{{
                 "object": "embedding",
@@ -434,7 +450,9 @@ mod tests {
                 "prompt_tokens": 5,
                 "total_tokens": 5
             }}
-        }}"#, embedding_array.join(","));
+        }}"#,
+            embedding_array.join(",")
+        );
 
         let mock = server.mock(|when, then| {
             when.method(POST)
@@ -490,7 +508,8 @@ mod tests {
             2,
         );
 
-        let req = BatchEmbeddingRequest::new(vec!["a".to_string(), "b".to_string(), "c".to_string()]);
+        let req =
+            BatchEmbeddingRequest::new(vec!["a".to_string(), "b".to_string(), "c".to_string()]);
         let resp = provider.embed_batch(req).await.unwrap();
 
         mock.assert();

@@ -167,7 +167,7 @@ where
         // Use test config in test environment, production config otherwise
         #[cfg(test)]
         let config = JwtConfig::new("test-secret", "test".to_string(), "test".to_string());
-        
+
         #[cfg(not(test))]
         let config = JwtConfig::new(
             &std::env::var("JWT_SECRET").unwrap_or_else(|_| "default_secret".to_string()),
@@ -175,7 +175,9 @@ where
             std::env::var("JWT_AUDIENCE").unwrap_or_else(|_| "nexis".to_string()),
         );
 
-        let claims = config.verify_token(token).map_err(|_| StatusCode::UNAUTHORIZED)?;
+        let claims = config
+            .verify_token(token)
+            .map_err(|_| StatusCode::UNAUTHORIZED)?;
 
         #[cfg(feature = "multi-tenant")]
         {

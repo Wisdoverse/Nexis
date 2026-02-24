@@ -105,7 +105,10 @@ impl IndexingQueue {
             while let Some(mut task) = receiver.recv().await {
                 debug!(task_id = %task.id, attempt = task.attempts, "Processing indexing task");
 
-                match service.index_message(&task.message, task.room_id, task.metadata.clone()).await {
+                match service
+                    .index_message(&task.message, task.room_id, task.metadata.clone())
+                    .await
+                {
                     Ok(doc_id) => {
                         info!(task_id = %task.id, doc_id = %doc_id, "Indexing task completed");
                         let mut stats = stats_clone.lock().await;
@@ -120,7 +123,7 @@ impl IndexingQueue {
                             let mut stats = stats_clone.lock().await;
                             stats.retries += 1;
                             drop(stats);
-                            
+
                             if let Err(e) = sender_clone.send(task.clone()).await {
                                 error!(task_id = %task.id, error = %e, "Failed to re-queue task for retry");
                                 let mut pending = pending_clone.lock().await;
@@ -307,7 +310,7 @@ mod tests {
         task.increment_attempt();
         assert_eq!(task.attempts, 1);
         assert!(task.can_retry());
-        
+
         task.increment_attempt();
         task.increment_attempt();
         assert_eq!(task.attempts, 3);

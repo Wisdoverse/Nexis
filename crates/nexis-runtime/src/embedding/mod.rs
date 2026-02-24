@@ -82,10 +82,7 @@ pub struct BatchEmbeddingRequest {
 
 impl BatchEmbeddingRequest {
     pub fn new(texts: Vec<String>) -> Self {
-        Self {
-            texts,
-            model: None,
-        }
+        Self { texts, model: None }
     }
 
     pub fn with_model(mut self, model: impl Into<String>) -> Self {
@@ -110,7 +107,10 @@ pub trait EmbeddingProvider: Send + Sync + std::fmt::Debug {
 
     async fn embed(&self, req: EmbeddingRequest) -> Result<EmbeddingResponse, ProviderError>;
 
-    async fn embed_batch(&self, req: BatchEmbeddingRequest) -> Result<BatchEmbeddingResponse, ProviderError>;
+    async fn embed_batch(
+        &self,
+        req: BatchEmbeddingRequest,
+    ) -> Result<BatchEmbeddingResponse, ProviderError>;
 }
 
 #[derive(Debug, Default)]
@@ -158,9 +158,14 @@ impl EmbeddingProvider for MockEmbeddingProvider {
         }
     }
 
-    async fn embed_batch(&self, req: BatchEmbeddingRequest) -> Result<BatchEmbeddingResponse, ProviderError> {
+    async fn embed_batch(
+        &self,
+        req: BatchEmbeddingRequest,
+    ) -> Result<BatchEmbeddingResponse, ProviderError> {
         let count = req.texts.len();
-        let embeddings = (0..count).map(|_| self.generate_constant_embedding()).collect();
+        let embeddings = (0..count)
+            .map(|_| self.generate_constant_embedding())
+            .collect();
         Ok(BatchEmbeddingResponse {
             embeddings,
             model: "mock-embedding-model".to_string(),
@@ -213,7 +218,8 @@ mod tests {
     #[tokio::test]
     async fn mock_provider_batch_embedding() {
         let provider = MockEmbeddingProvider::new(128);
-        let req = BatchEmbeddingRequest::new(vec!["a".to_string(), "b".to_string(), "c".to_string()]);
+        let req =
+            BatchEmbeddingRequest::new(vec!["a".to_string(), "b".to_string(), "c".to_string()]);
         let resp = provider.embed_batch(req).await.unwrap();
         assert_eq!(resp.embeddings.len(), 3);
         assert!(resp.usage.is_some());

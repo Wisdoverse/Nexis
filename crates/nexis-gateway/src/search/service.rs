@@ -184,7 +184,9 @@ impl SearchService for SemanticSearchService {
         debug!("Searching for: {}", request.query);
 
         if request.query.trim().is_empty() {
-            return Err(SearchError::InvalidQuery("Query cannot be empty".to_string()));
+            return Err(SearchError::InvalidQuery(
+                "Query cannot be empty".to_string(),
+            ));
         }
 
         let embedding = self.generate_embedding(&request.query).await?;
@@ -211,7 +213,8 @@ impl SearchService for SemanticSearchService {
             .await
             .map_err(|e| SearchError::VectorError(e.to_string()))?;
 
-        let items: Vec<SearchResultItem> = results.into_iter().map(SearchResultItem::from).collect();
+        let items: Vec<SearchResultItem> =
+            results.into_iter().map(SearchResultItem::from).collect();
 
         let truncated = items.len() >= limit;
         let mut response = SearchResponse::new(request.query, items);
@@ -228,9 +231,7 @@ impl SearchService for SemanticSearchService {
         room_id: Uuid,
         limit: usize,
     ) -> Result<SearchResponse, SearchError> {
-        let request = SearchRequest::new(query)
-            .with_limit(limit)
-            .in_room(room_id);
+        let request = SearchRequest::new(query).with_limit(limit).in_room(room_id);
         self.search(request).await
     }
 }
