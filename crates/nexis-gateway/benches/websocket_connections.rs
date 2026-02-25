@@ -39,9 +39,8 @@ fn benchmark_websocket_connections(c: &mut Criterion) {
                         .map(|idx| {
                             let url = url.clone();
                             tokio::spawn(async move {
-                                let (mut ws, _resp) = connect_async(url)
-                                    .await
-                                    .expect("websocket should connect");
+                                let (mut ws, _resp) =
+                                    connect_async(url).await.expect("websocket should connect");
                                 ws.send(Message::Text(format!("ping-{idx}")))
                                     .await
                                     .expect("send benchmark frame");

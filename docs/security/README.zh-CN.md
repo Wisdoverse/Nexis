@@ -36,8 +36,10 @@
 
 ## 4. 关键配置文件
 
-- Baseline 细则：`docs/security/baseline.en.md`
-- Enterprise 细则：`docs/security/enterprise.en.md`
+- Baseline 细则：`docs/security/baseline.md`
+- Enterprise 细则：`docs/security/enterprise.md`
+- 密钥管理指南：`docs/security/key-management.md`
+- 安全审计报告：`docs/security/audit-2026-02-25.md`
 - 环境变量模板：`.env.example`
 - 本地提交检查：`.pre-commit-config.yaml`
 - CI 安全扫描：`.github/workflows/security.yml`

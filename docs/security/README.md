@@ -38,6 +38,8 @@
 
 - Baseline details: `docs/security/baseline.md`
 - Enterprise details: `docs/security/enterprise.md`
+- Key management guide: `docs/security/key-management.md`
+- Security audit report: `docs/security/audit-2026-02-25.md`
 - Environment template: `.env.example`
 - Local commit checks: `.pre-commit-config.yaml`
 - CI security scanning: `.github/workflows/security.yml`

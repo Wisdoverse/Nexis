@@ -11,7 +11,8 @@ pub struct TraceExportConfig {
 
 impl TraceExportConfig {
     pub fn from_env() -> Result<Self> {
-        let exporter = std::env::var("NEXIS_OTEL_EXPORTER").unwrap_or_else(|_| "stdout".to_string());
+        let exporter =
+            std::env::var("NEXIS_OTEL_EXPORTER").unwrap_or_else(|_| "stdout".to_string());
         let endpoint = std::env::var("NEXIS_OTEL_EXPORT_ENDPOINT").ok();
         match exporter.as_str() {
             "stdout" | "none" | "otlp" => Ok(Self { exporter, endpoint }),

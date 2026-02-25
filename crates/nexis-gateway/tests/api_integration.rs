@@ -104,6 +104,9 @@ async fn api_create_room_and_send_message_roundtrip() {
             .expect("get room body"),
     )
     .expect("room snapshot should parse");
-    assert_eq!(room_snapshot["messages"].as_array().map(|v| v.len()), Some(1));
+    assert_eq!(
+        room_snapshot["messages"].as_array().map(|v| v.len()),
+        Some(1)
+    );
     assert_eq!(room_snapshot["messages"][0]["text"], "integration message");
 }

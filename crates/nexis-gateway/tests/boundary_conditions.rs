@@ -126,7 +126,10 @@ async fn supports_concurrent_message_writes() {
         .collect::<Vec<_>>();
 
     for worker in workers {
-        assert_eq!(worker.await.expect("worker should join"), StatusCode::CREATED);
+        assert_eq!(
+            worker.await.expect("worker should join"),
+            StatusCode::CREATED
+        );
     }
 
     let room_response = app
@@ -150,7 +153,10 @@ async fn supports_concurrent_message_writes() {
     )
     .expect("get room payload should parse");
 
-    assert_eq!(room_payload["messages"].as_array().map(|v| v.len()), Some(64));
+    assert_eq!(
+        room_payload["messages"].as_array().map(|v| v.len()),
+        Some(64)
+    );
 }
 
 #[tokio::test]

@@ -86,9 +86,15 @@ fn benchmark_message_throughput(c: &mut Criterion) {
                         let body = axum::body::to_bytes(create_response.into_body(), usize::MAX)
                             .await
                             .expect("create room body should read");
-                        let payload: serde_json::Value =
-                            serde_json::from_slice(&body).expect("create room payload should parse");
-                        (app, payload["id"].as_str().expect("room id should exist").to_string())
+                        let payload: serde_json::Value = serde_json::from_slice(&body)
+                            .expect("create room payload should parse");
+                        (
+                            app,
+                            payload["id"]
+                                .as_str()
+                                .expect("room id should exist")
+                                .to_string(),
+                        )
                     })
                 },
                 |(app, room_id)| {
