@@ -2,259 +2,109 @@
 
 <div align="center">
 
-**AI-Native Team Communication Platform**
+[![CI](https://img.shields.io/github/actions/workflow/status/schorsch888/Nexis/ci.yml?branch=main&label=ci)](https://github.com/schorsch888/Nexis/actions)
+[![Security](https://img.shields.io/badge/security-policy-green)](SECURITY.md)
+[![Rust](https://img.shields.io/badge/rust-1.75%2B-orange)](https://www.rust-lang.org/)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
+[![Docs](https://img.shields.io/badge/docs-index-blue)](docs/index.md)
 
-*Where humans and AI collaborate seamlessly*
-
-[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
-[![Rust](https://img.shields.io/badge/rust-1.75%2B-orange.svg)](https://www.rust-lang.org/)
-[![Build Status](https://img.shields.io/github/actions/workflow/status/schorsch888/Nexis/ci.yml?branch=main)](https://github.com/schorsch888/Nexis/actions)
-
-[English](README.md) | [中文](docs/README.zh-CN.md)
+**AI-Native Team Communication Platform / AI 原生团队协作平台**
 
 </div>
 
----
+## Table of Contents / 目录
 
-## 🎯 Vision
+- [Overview / 项目概述](#overview--项目概述)
+- [Features / 核心能力](#features--核心能力)
+- [Screenshot / 截图](#screenshot--截图)
+- [Quick Start / 快速开始](#quick-start--快速开始)
+- [Installation / 安装](#installation--安装)
+- [Documentation / 文档导航](#documentation--文档导航)
+- [Contributing / 参与贡献](#contributing--参与贡献)
+- [Security / 安全](#security--安全)
+- [License / 许可证](#license--许可证)
 
-**Build a productivity platform where AI and humans collaborate seamlessly.**
+## Overview / 项目概述
 
-Nexis is not another Slack or Feishu. It is an **AI-Native** collaboration platform built from scratch, where AI becomes a first-class citizen, not just a plugin.
+Nexis is an AI-native collaboration platform where human members and AI members share a unified identity, messaging protocol, and runtime context.
 
-### Core Principles
+Nexis 是一个 AI 原生协作平台，核心是让人类成员与 AI 成员在统一身份、统一消息协议、统一上下文中协作。
 
-| Traditional IM | Nexis |
-|----------------|-------|
-| AI as plugin/Bot | AI as team member |
-| Fragmented context | Unified semantic layer |
-| Passive response | Proactive collaboration |
-| Single AI integration | Multi-AI collaboration |
+## Features / 核心能力
 
----
+- Unified identity model (`human`, `ai`, `agent`, `system`) / 统一成员身份模型（`human`、`ai`、`agent`、`system`）
+- Real-time gateway over WebSocket + JWT auth / 基于 WebSocket + JWT 的实时网关
+- AI provider integration abstraction (OpenAI, Anthropic, Gemini adapters) / AI 提供商抽象层（OpenAI、Anthropic、Gemini）
+- Rust workspace with modular crates / Rust 多 crate 模块化工作区
+- Security baseline + enterprise profile docs / Baseline 与 Enterprise 双安全基线文档
 
-## 🏗️ Architecture
+## Screenshot / 截图
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                      Nexis Platform                          │
-├──────────────────┬──────────────────┬───────────────────────┤
-│   Nexis ID       │   Nexis Core     │   Nexis UI            │
-│   ━━━━━━━━━      │   ━━━━━━━━━━     │   ━━━━━━━━━           │
-│   AI Protocol    │   Semantic Layer │   Minimal UI          │
-│                  │                  │                       │
-│   • Identity     │   • Vector Store │   • CUI + GUI         │
-│   • Permissions  │   • Knowledge    │   • Workflow          │
-│   • MCP Integration│ • Context Engine│   • Multi-platform  │
-└──────────────────┴──────────────────┴───────────────────────┘
-```
+### Product Overview (Mock Screenshot) / 产品概览（示意图）
 
-### Three Pillars
+![Nexis Overview](docs/assets/nexis-overview.svg)
 
-#### Pillar A: AI Integration Protocol (NIP)
-
-Let any LLM or Agent become a team member with:
-- **Unified Identity** - `nexis:ai:openai/gpt-4` vs `nexis:human:alice@example.com`
-- **Permission Control** - Room-level and operation-level permissions
-- **Interaction Interface** - Same message protocol as humans
-
-📖 [NIP-001: Identity Protocol](protocol/nexis-id.md) | [NIP-002: Message Protocol](protocol/nexis-msg.md) | [NIP-003: MCP Integration](protocol/nexis-mcp.md)
-
-#### Pillar B: Semantic Data Layer
-
-Break the boundaries between documents, messages, and tables:
-- **Vector Storage** - All content automatically vectorized
-- **Knowledge Graph** - Relationships between people, tasks, documents
-- **Unified Context** - AI understands full context
-
-#### Pillar C: Minimal Interaction
-
-- **CUI First** - CLI interface, developer-friendly
-- **AI Collaboration** - Multi-AI parallel, voting, discussion
-- **Workflow Orchestration** - Visual AI task flows
-
----
-
-## 🚀 Quick Start
-
-### Prerequisites
-
-- Rust 1.75+
-- Node.js 20+ (for web app)
-- PostgreSQL 15+ (planned)
-- Qdrant (planned)
-
-### Installation
+## Quick Start / 快速开始
 
 ```bash
-# Clone the repository
+# 1) Clone / 克隆
 git clone https://github.com/schorsch888/Nexis.git
 cd Nexis
 
-# Build workspace
+# 2) Build workspace / 构建工作区
 cargo build --workspace
 
-# Run CLI
-cargo run -p nexis-cli -- create-room "general"
-
-# Run gateway
+# 3) Run gateway / 启动网关
 cargo run -p nexis-gateway
+
+# 4) Create a room via CLI / 通过 CLI 创建房间
+cargo run -p nexis-cli -- create-room "general"
 ```
 
-### Docker
+## Installation / 安装
+
+### Prerequisites / 环境要求
+
+- Rust `1.75+`
+- Git `2.30+`
+- Optional: Docker / 可选：Docker
+
+### Local Development / 本地开发
+
+```bash
+# Format + lint + test
+cargo fmt --all
+cargo clippy --workspace --all-targets -- -D warnings
+cargo test --workspace
+```
+
+### Docker / 容器方式
 
 ```bash
 docker-compose up -d
 ```
 
----
+## Documentation / 文档导航
 
-## 📦 Project Structure
+- [Documentation Home / 文档首页](docs/index.md)
+- [Getting Started / 快速开始](docs/getting-started/quickstart.md)
+- [Architecture / 架构设计](docs/architecture/tenant-model.md)
+- [API Reference / API 参考](docs/api/reference.md)
+- [Deployment Guide / 部署指南](docs/deployment/guide.md)
+- [Development Guide / 开发指南](docs/development/guide.md)
+- [Security Docs / 安全文档](docs/security/README.md)
 
-```
-nexis/
-├── crates/                    # Rust workspace
-│   ├── nexis-core/           # Core library
-│   ├── nexis-protocol/       # Protocol definitions
-│   ├── nexis-mcp/            # MCP integration
-│   ├── nexis-gateway/        # Control Plane
-│   ├── nexis-runtime/        # Agent Runtime
-│   └── nexis-cli/            # CLI client
-├── libs/                      # Shared libraries
-│   └── typescript/           # TypeScript SDK
-├── apps/                      # Applications
-│   └── web/                  # Web frontend
-├── proto/                     # Protocol Buffers
-├── config/                    # Configuration
-├── tests/                     # Integration tests
-├── docs/                      # Documentation
-│   ├── security/             # Security docs
-│   └── plans/                # Design docs
-└── protocol/                  # Protocol specs
-```
+## Contributing / 参与贡献
 
-### Runtime Status (M3)
+- [Contributing Guide / 贡献指南](CONTRIBUTING.md)
+- [Code of Conduct / 行为准则](CODE_OF_CONDUCT.md)
 
-| Module | Status | Notes |
-|--------|--------|-------|
-| nexis-protocol | ✅ ready | NIP-001/002 types with tests |
-| nexis-core | ✅ ready | Re-exports + domain extensions |
-| nexis-gateway | ✅ ready | WebSocket + JWT auth + SQLx persistence |
-| nexis-runtime | 🔄 in progress | OpenAI complete, Anthropic streaming pending |
-| nexis-mcp | 🔄 in progress | OpenAI/Anthropic/Gemini adapters ready |
-| nexis-cli | 🔄 in progress | REPL with commands + AI interaction |
-| MCP providers | 📝 stub | Interface ready, real adapters pending |
+## Security / 安全
 
----
+Please report vulnerabilities privately via [SECURITY.md](SECURITY.md).
 
-## 🛠️ Development
+如发现安全漏洞，请通过 [SECURITY.md](SECURITY.md) 中的私有渠道提交。
 
-### Setup
+## License / 许可证
 
-```bash
-# Install Rust
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-
-# Install dependencies
-cargo install cargo-watch cargo-audit
-
-# Run tests
-cargo test --all
-
-# Run with hot reload
-cargo watch -x run
-```
-
-### Code Style
-
-```bash
-# Format code
-cargo fmt
-
-# Lint
-cargo clippy -- -D warnings
-
-# Security audit
-cargo audit
-```
-
-### Commit Convention
-
-We use [Conventional Commits](https://www.conventionalcommits.org/):
-
-```
-feat(core): add member identity system
-fix(gateway): resolve websocket connection leak
-docs: update API documentation
-test(core): add unit tests for MemberId
-```
-
-See [CONTRIBUTING.md](docs/CONTRIBUTING.md) for details.
-
----
-
-## 🗺️ Roadmap
-
-### Phase 1: Foundation ✅
-- [x] Protocol specification (NIP-001, NIP-002, NIP-003)
-- [x] Core identity system
-- [x] Message protocol implementation
-- [x] Basic gateway with WebSocket
-
-### Phase 2: MVP (Current)
-- [ ] Real AI provider integration (OpenAI, Anthropic, Gemini)
-- [ ] Single room + multi-user
-- [ ] Message persistence
-- [ ] CLI client
-
-### Phase 3: Intelligence
-- [ ] Vector storage (Qdrant)
-- [ ] Context engine
-- [ ] Knowledge graph
-- [ ] Semantic search
-
-### Phase 4: Scale
-- [ ] Multi-tenant support
-- [ ] Federation protocol
-- [ ] Web UI
-- [ ] Mobile apps
-
----
-
-## 🔐 Security
-
-See [SECURITY.md](SECURITY.md) for:
-- Vulnerability reporting
-- Security features
-- Audit and compliance
-
----
-
-## 🤝 Contributing
-
-We welcome contributions! Please see:
-- [Contributing Guide](docs/CONTRIBUTING.md)
-- [Code of Conduct](docs/CODE_OF_CONDUCT.md)
-
----
-
-## 📄 License
-
-This project is licensed under the Apache-2.0 License - see the [LICENSE](LICENSE) file for details.
-
----
-
-## 🙏 Acknowledgments
-
-- [MCP (Model Context Protocol)](https://modelcontextprotocol.io/) - AI integration standard
-- [Matrix Protocol](https://matrix.org/) - Decentralized communication inspiration
-
----
-
-<div align="center">
-
-**Built with ❤️ by the Nexis Team**
-
-[Discord](https://discord.gg/VMPC28gyQB) • [GitHub](https://github.com/schorsch888/Nexis)
-
-</div>
+Apache-2.0. See [LICENSE](LICENSE).

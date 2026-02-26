@@ -1,29 +1,49 @@
-# Nexis Documentation
+# Nexis Documentation Hub / Nexis 文档中心
 
-Welcome to the Nexis documentation. Nexis is an AI-Native team collaboration platform.
+## Table of Contents / 目录
 
-## Getting Started
+- [Getting Started / 快速开始](#getting-started--快速开始)
+- [Architecture / 架构设计](#architecture--架构设计)
+- [API / 接口参考](#api--接口参考)
+- [Deployment / 部署指南](#deployment--部署指南)
+- [Development / 开发指南](#development--开发指南)
+- [Security / 安全策略](#security--安全策略)
+- [Project Governance / 项目治理](#project-governance--项目治理)
 
-- [Quick Start](getting-started/quickstart.md) - Get up and running quickly
-- [Architecture Overview](architecture/tenant-model.md) - Understand the system design
+## Getting Started / 快速开始
 
-## Architecture
+- [Quick Start (EN)](getting-started/quickstart.md)
+- [快速开始 (中文)](getting-started/quickstart.zh-CN.md)
 
-- [Multi-Tenant Model](architecture/tenant-model.md) - Tenant isolation and data model
-- [ADR Records](adr/) - Architecture Decision Records
+## Architecture / 架构设计
 
-## Development
+- [Tenant Model](architecture/tenant-model.md)
+- [Architecture Review 2026-02-23](architecture/review-2026-02-23.md)
+- [ADR Index](adr/000-record-architecture-decisions.md)
 
-- [Contributing Guide](../CONTRIBUTING.md) - How to contribute
-- [Project Management](PROJECT_MANAGEMENT.md) - Sprint plans and milestones
-- [API Documentation](api/) - API reference
+## API / 接口参考
 
-## Deployment
+- [API Reference](api/reference.md)
 
-- [Deployment Guide](deployment/) - Production deployment
-- [Security](security/) - Security policies
+## Deployment / 部署指南
 
-## Plans & Progress
+- [Deployment Guide](deployment/guide.md)
 
-- [Phase 3: Intelligence](plans/2026-02-20-phase3-intelligence.md)
-- [Phase 4: Scale](plans/2026-02-21-phase4-scale.md)
+## Development / 开发指南
+
+- [Development Guide](development/guide.md)
+- [Contributing](../CONTRIBUTING.md)
+
+## Security / 安全策略
+
+- [Security Policy](../SECURITY.md)
+- [Security Overview](security/README.md)
+- [Security Overview (中文)](security/README.zh-CN.md)
+- [Baseline Security Profile](security/baseline.md)
+- [Enterprise Security Profile](security/enterprise.md)
+
+## Project Governance / 项目治理
+
+- [Changelog](../CHANGELOG.md)
+- [Code of Conduct](../CODE_OF_CONDUCT.md)
+- [License](../LICENSE)

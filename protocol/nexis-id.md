@@ -119,5 +119,5 @@ type Action = "read" | "write" | "invoke" | "admin";
 
 ## 参考实现
 
-- [nexis-core](../packages/nexis-core/) - Rust 核心库
-- [nexis-gateway](../servers/nexis-gateway/) - 网关服务
+- [nexis-core](../crates/nexis-core/) - Rust 核心库
+- [nexis-gateway](../crates/nexis-gateway/) - 网关服务

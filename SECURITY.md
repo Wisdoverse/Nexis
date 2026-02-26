@@ -1,108 +1,79 @@
-# Security Policy
+# Security Policy / 安全策略
 
-> 本策略适用于 Nexis 的分层安全模型：`Baseline Profile` 与 `Enterprise Profile`。
+## Table of Contents / 目录
 
-## 1. Profile 分类
+- [Supported Versions / 支持版本](#supported-versions--支持版本)
+- [Reporting a Vulnerability / 漏洞报告方式](#reporting-a-vulnerability--漏洞报告方式)
+- [Response SLA / 响应时效](#response-sla--响应时效)
+- [Disclosure Process / 披露流程](#disclosure-process--披露流程)
+- [Security Baselines / 安全基线](#security-baselines--安全基线)
+- [Safe Harbor / 安全港](#safe-harbor--安全港)
 
-### [Baseline] 开源自托管
-- 适用：单组织 / 中小规模部署
-- 特点：不依赖第三方云安全服务，强调可落地、低耦合、自动化扫描
-- 基准文档：`docs/security/baseline.md`
-
-### [Enterprise] 企业私有化
-- 适用：多租户、强审计、合规驱动部署
-- 特点：租户隔离、不可变审计、审批治理、SOC2/ISO27001 证据管理
-- 基准文档：`docs/security/enterprise.md`
-
-## 2. Vulnerability Reporting
-
-**禁止通过公开 issue 报告安全漏洞。**
-
-请通过以下渠道私下提交：
-- Email: `security@nexis.ai`
-- GitHub Security Advisory: <https://github.com/schorsch888/Nexis/security/advisories/new>
-
-响应 SLA（工作日）：
-- 24 小时内确认收到
-- 72 小时内给出分级和初步缓解建议
-
-## 3. Supported Versions
+## Supported Versions / 支持版本
 
 | Version | Supported |
 | --- | --- |
 | 0.x | Yes |
 
-## 4. Security Controls
+## Reporting a Vulnerability / 漏洞报告方式
 
-### [Baseline] 必要控制
-- 认证：OIDC/JWT（RS256）或等价机制
-- 授权：最小权限 RBAC，默认拒绝
-- 传输：TLS 1.2+（建议 1.3）
-- 密钥：环境变量或自建密钥库，禁止硬编码
-- 扫描：`gitleaks` + `cargo audit` + `trivy`
-- 日志：审计日志与应用日志分离
+Please do **not** report security vulnerabilities through public GitHub issues.
 
-### [Enterprise] 增强控制
-- 认证：企业 SSO + MFA + 条件访问
-- 授权：RBAC + ABAC + tenant 强制策略
-- 数据：租户级隔离与关键数据分级加密
-- 审计：不可变存储 + SIEM 汇聚 + 长周期保留
-- 供应链：SBOM、制品签名、发布审批 Gate
-- 合规：SOC2/ISO27001 控制项与证据映射
+请不要通过公开 GitHub Issue 报告安全漏洞。
 
-## 5. Implementation Steps
+Use one of the private channels below:
 
-1. 采用 `.pre-commit-config.yaml` 启用本地安全门禁。
-2. 采用 `.github/workflows/security.yml` 启用 PR 安全扫描。
-3. 依据 `docs/security/baseline.md` 完成 Baseline 落地。
-4. 企业部署按 `docs/security/enterprise.md` 启用增强控制。
-5. 每次发布前完成安全检查清单并存档证据。
+请使用以下私有渠道提交：
 
-## 6. Configuration Examples
+- Email: `security@nexis.ai`
+- GitHub Security Advisory: <https://github.com/schorsch888/Nexis/security/advisories/new>
 
-### Baseline 示例
-```env
-NEXIS_PROFILE=baseline
-NEXIS_DEFAULT_DENY=true
-NEXIS_AUDIT_LOG_ENABLED=true
-```
+What to include / 建议包含信息：
 
-### Enterprise 示例
-```env
-NEXIS_PROFILE=enterprise
-NEXIS_MULTI_TENANT_ENABLED=true
-NEXIS_AUDIT_IMMUTABLE_STORAGE=true
-NEXIS_REQUIRE_MFA=true
-```
+- Affected component/version / 受影响组件与版本
+- Reproduction steps / 复现步骤
+- Impact assessment / 影响评估
+- Suggested remediation (if available) / 可选修复建议
 
-## 7. Incident Response
+## Response SLA / 响应时效
 
-### 分级
-- `Critical`：远程未授权访问、密钥泄露、跨租户数据泄露
-- `High`：权限提升、认证绕过、可利用高危依赖漏洞
-- `Medium/Low`：需结合上下文评估
+On business days:
 
-### 响应流程
-1. 受理并确认（分配事件 ID）
-2. 快速分级（CVSS + 业务影响）
-3. 遏制（隔离、禁用密钥、回滚）
-4. 修复与验证
-5. 发布公告与复盘（含时间线与改进项）
+工作日响应目标：
 
-## 8. Security Checklist
+- Acknowledgement within 24 hours / 24 小时内确认收到
+- Initial triage within 72 hours / 72 小时内完成初步分级
+- Coordinated remediation timeline based on severity / 按严重级别协同修复时间线
 
-### [Baseline] 发布前
-- [ ] pre-commit 全部通过
-- [ ] CI `Security` 工作流通过
-- [ ] 无未豁免高危漏洞
-- [ ] 密钥与证书在有效轮转周期内
+## Disclosure Process / 披露流程
 
-### [Enterprise] 发布前
-- [ ] 多租户隔离策略审计通过
-- [ ] 审计日志不可变策略有效
-- [ ] 高风险操作审批链完整
-- [ ] 合规证据（SBOM/扫描/审计记录）已归档
+1. Report received and tracked with internal incident ID.
+2. Validate and assess severity (CVSS + business impact).
+3. Mitigate and patch.
+4. Coordinate release and advisory publication.
+5. Close incident with postmortem improvements.
 
-## 9. Safe Harbor
+1. 接收报告并分配事件编号。
+2. 复现并评估严重级别（CVSS + 业务影响）。
+3. 实施缓解与修复。
+4. 协调发布补丁与安全公告。
+5. 完成复盘并跟踪改进项。
 
-只要你本着善意、避免数据破坏、并遵守法律法规进行安全研究，Nexis 将把你的研究视为负责任披露，并与你合作完成修复。
+## Security Baselines / 安全基线
+
+Detailed controls are documented in:
+
+详细控制基线见：
+
+- [docs/security/baseline.md](docs/security/baseline.md)
+- [docs/security/enterprise.md](docs/security/enterprise.md)
+- [docs/security/key-management.md](docs/security/key-management.md)
+
+## Safe Harbor / 安全港
+
+We support good-faith security research. If you avoid privacy violations,
+service disruption, and data destruction, and comply with applicable laws,
+we will treat your report as responsible disclosure.
+
+我们支持善意安全研究。若你避免隐私侵害、服务破坏、数据损毁，并遵守相关法律法规，
+我们将按负责任披露流程处理并与你协同修复。

@@ -234,7 +234,7 @@ test(core): 添加 MemberId 单元测试
 
 欢迎贡献！请查看：
 - [贡献指南](CONTRIBUTING.md)
-- [行为准则](CODE_OF_CONDUCT.md)
+- [行为准则](../CODE_OF_CONDUCT.md)
 
 ---
 
