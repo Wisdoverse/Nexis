@@ -10,6 +10,8 @@ members = [
   "crates/nexis-vector",
   "crates/nexis-context",
   "crates/nexis-federation",
+  "crates/nexis-memory",
+  "crates/nexis-skills",
 ]
 resolver = "2"
 
