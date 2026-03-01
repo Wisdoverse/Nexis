@@ -12,6 +12,10 @@ members = [
   "crates/nexis-federation",
   "crates/nexis-memory",
   "crates/nexis-skills",
+  "crates/nexis-meeting",
+  "crates/nexis-doc",
+  "crates/nexis-task",
+  "crates/nexis-calendar",
 ]
 resolver = "2"
 
