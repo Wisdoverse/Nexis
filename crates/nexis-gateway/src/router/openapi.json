@@ -104,6 +104,133 @@
           }
         }
       }
+    },
+    "/collaboration/meetings": {
+      "post": {
+        "summary": "Create collaboration room",
+        "responses": {
+          "201": {
+            "description": "Meeting created"
+          },
+          "400": {
+            "description": "Validation error"
+          }
+        }
+      }
+    },
+    "/collaboration/meetings/{id}/join": {
+      "post": {
+        "summary": "Join collaboration room",
+        "responses": {
+          "200": {
+            "description": "Joined meeting"
+          },
+          "404": {
+            "description": "Meeting not found"
+          }
+        }
+      }
+    },
+    "/collaboration/meetings/{id}/leave": {
+      "post": {
+        "summary": "Leave collaboration room",
+        "responses": {
+          "200": {
+            "description": "Left meeting"
+          },
+          "404": {
+            "description": "Meeting not found"
+          }
+        }
+      }
+    },
+    "/collaboration/documents": {
+      "post": {
+        "summary": "Create collaborative document",
+        "responses": {
+          "201": {
+            "description": "Document created"
+          },
+          "400": {
+            "description": "Validation error"
+          }
+        }
+      }
+    },
+    "/collaboration/documents/{id}": {
+      "get": {
+        "summary": "Get collaborative document",
+        "responses": {
+          "200": {
+            "description": "Document details"
+          },
+          "404": {
+            "description": "Document not found"
+          }
+        }
+      }
+    },
+    "/collaboration/tasks": {
+      "post": {
+        "summary": "Create collaboration task",
+        "responses": {
+          "201": {
+            "description": "Task created"
+          },
+          "400": {
+            "description": "Validation error"
+          }
+        }
+      }
+    },
+    "/collaboration/tasks/{id}/assign": {
+      "put": {
+        "summary": "Assign collaboration task",
+        "responses": {
+          "200": {
+            "description": "Task assigned"
+          },
+          "404": {
+            "description": "Task not found"
+          }
+        }
+      }
+    },
+    "/collaboration/tasks/{id}/complete": {
+      "put": {
+        "summary": "Complete collaboration task",
+        "responses": {
+          "200": {
+            "description": "Task completed"
+          },
+          "404": {
+            "description": "Task not found"
+          }
+        }
+      }
+    },
+    "/collaboration/calendar/events": {
+      "post": {
+        "summary": "Create calendar event",
+        "responses": {
+          "201": {
+            "description": "Event created"
+          },
+          "400": {
+            "description": "Validation error"
+          }
+        }
+      }
+    },
+    "/collaboration/calendar/conflicts": {
+      "get": {
+        "summary": "Check calendar conflicts",
+        "responses": {
+          "200": {
+            "description": "Conflict check response"
+          }
+        }
+      }
     }
   }
 }
