@@ -21,3 +21,8 @@ smallvec = { version = "1.13", features = ["serde"] }
 
 [dev-dependencies]
 proptest = { workspace = true }
+criterion = { workspace = true }
+
+[[bench]]
+name = "crdt_benchmark"
+harness = false

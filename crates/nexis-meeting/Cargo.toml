@@ -18,3 +18,10 @@ thiserror = { workspace = true }
 tracing = { workspace = true }
 tokio-tungstenite = "0.26"
 futures-util = "0.3"
+
+[dev-dependencies]
+criterion = { workspace = true }
+
+[[bench]]
+name = "sfu_benchmark"
+harness = false
