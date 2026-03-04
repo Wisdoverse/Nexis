@@ -21,7 +21,17 @@ tokio = { workspace = true }
 [dev-dependencies]
 httpmock = { workspace = true }
 tokio = { workspace = true }
+chrono = { workspace = true }
+uuid = { workspace = true }
+nexis-meeting = { workspace = true }
+nexis-doc = { workspace = true }
+nexis-task = { workspace = true }
+nexis-calendar = { workspace = true }
 
 [[test]]
 name = "ai_provider_test"
 path = "../../tests/e2e/ai_provider_test.rs"
+
+[[test]]
+name = "collaboration_test"
+path = "../../tests/collaboration_test.rs"
