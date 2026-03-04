@@ -435,7 +435,7 @@ pub async fn connect_websocket_once(
         .map_err(|err| CliError::WebSocket(err.to_string()))?;
 
     if let Some(text) = message {
-        ws.send(Message::Text(text))
+        ws.send(Message::Text(text.into()))
             .await
             .map_err(|err| CliError::WebSocket(err.to_string()))?;
 
