@@ -5,6 +5,7 @@
 //! - Agent discovery and registration
 //! - Inter-agent communication (messages, envelopes)
 //! - Multi-agent collaboration (handoff, fan-out/fan-in)
+#![allow(clippy::multiple_crate_versions)]
 
 pub mod agent;
 pub mod collaboration;
@@ -23,8 +24,10 @@ pub use communication::{
 pub use discovery::{AgentFilter, AgentRegistry, AgentStatus, DiscoveryQuery, DiscoveryResult};
 pub use error::{A2AError, A2AResult};
 
+/// Supported A2A protocol version implemented by this crate.
 pub const PROTOCOL_VERSION: &str = "a2a.v1";
 
+/// Convenient re-exports for commonly used A2A types.
 pub mod prelude {
     pub use crate::agent::{AgentCapabilities, AgentId, AgentIdentity, AgentProfile, Capability};
     pub use crate::collaboration::{
