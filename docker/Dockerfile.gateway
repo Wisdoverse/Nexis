@@ -13,8 +13,14 @@ RUN cargo build --release -p nexis-gateway
 # Runtime image
 FROM debian:bookworm-slim
 
-RUN apt-get update && apt-get install -y \
+LABEL org.opencontainers.image.title="Nexis Gateway" \
+      org.opencontainers.image.description="Nexis control plane gateway service" \
+      org.opencontainers.image.vendor="Nexis" \
+      org.opencontainers.image.licenses="MIT"
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -23,8 +29,9 @@ WORKDIR /app
 COPY --from=builder /app/target/release/nexis-gateway /usr/local/bin/
 
 # Create non-root user
-RUN useradd -r -s /bin/false nexis
-USER nexis
+RUN groupadd --system nexis \
+    && useradd --system --gid nexis --create-home --home-dir /home/nexis --shell /usr/sbin/nologin nexis
+USER nexis:nexis
 
 # Expose port
 EXPOSE 8080

@@ -38,6 +38,34 @@ On business days:
 4. Coordinated release and advisory publication.
 5. Incident closure with postmortem actions.
 
+## Security Best Practices
+
+- Run production workloads with least privilege (non-root containers, scoped tokens, and short-lived credentials).
+- Enforce TLS termination at the edge and enable `NEXIS_HTTPS_REDIRECT_ENABLED=true` and `NEXIS_HSTS_ENABLED=true` in production.
+- Restrict CORS origins with `NEXIS_CORS_ALLOW_ORIGINS` to trusted domains only.
+- Keep secrets out of source control and inject them at runtime through your secrets manager.
+- Enable centralized logging and metrics with retention policies that meet your compliance requirements.
+- Apply database, host, and network hardening baselines alongside application controls.
+
+## Dependency Update Policy
+
+- Security patches for direct dependencies are prioritized and merged as soon as validation is complete.
+- Critical vulnerabilities (CVSS 9.0-10.0) are targeted for patch release within 48 hours.
+- High vulnerabilities (CVSS 7.0-8.9) are targeted for patch release within 7 calendar days.
+- Medium vulnerabilities (CVSS 4.0-6.9) are reviewed in the next scheduled maintenance window.
+- Dependency scanning is expected in CI, and lockfiles should be updated in the same change as dependency upgrades.
+- Any exception to upgrade timelines must be documented with compensating controls and expiry date.
+
+## Disclosure Timeline
+
+After a valid report is received:
+
+1. `T+0-1 day`: Acknowledge reporter and begin triage.
+2. `T+1-3 days`: Confirm impact, define remediation plan, and assign owner.
+3. `T+3-14 days`: Prepare, test, and stage fixes (timeline varies by severity and blast radius).
+4. `T+14-30 days`: Publish patched release and advisory notes, unless active exploitation requires accelerated release.
+5. `T+30-90 days`: Complete follow-up hardening and close post-incident actions.
+
 ## Security Baselines
 
 Detailed controls are documented in:

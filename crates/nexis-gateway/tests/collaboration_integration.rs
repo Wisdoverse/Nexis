@@ -1,13 +1,20 @@
 use axum::body::Body;
 use axum::http::{Request, StatusCode};
 use nexis_gateway::build_routes;
+use nexis_gateway::collaboration::{
+    CollaborationRateLimitKey, CollaborationRateLimitPolicy, CollaborationRateLimitScope,
+};
 use serde_json::Value;
 use tower::ServiceExt;
 
 fn auth_header() -> String {
+    auth_header_for_subject("collab-integration-user")
+}
+
+fn auth_header_for_subject(subject: &str) -> String {
     let now = chrono::Utc::now().timestamp() as usize;
     let claims = nexis_gateway::auth::Claims {
-        sub: "collab-integration-user".to_string(),
+        sub: subject.to_string(),
         exp: now + 3600,
         iat: now,
         iss: "nexis".to_string(),
@@ -270,4 +277,70 @@ async fn collaboration_routes_require_versioned_path() {
         .expect("response should exist");
 
     assert_eq!(response.status(), StatusCode::NOT_FOUND);
+}
+
+#[tokio::test]
+async fn collaboration_rate_limit_policy_tracks_subject_scope_threshold() {
+    let app = build_routes();
+    let policy = CollaborationRateLimitPolicy::new(2, 60).expect("policy should be valid");
+    let key = CollaborationRateLimitKey::new(
+        CollaborationRateLimitScope::Tasks,
+        "collab-integration-user",
+    )
+    .expect("rate limit key should be valid");
+
+    let mut request_count = 0;
+    for sequence in 1..=3 {
+        let response = app
+            .clone()
+            .oneshot(base_request(
+                "POST",
+                "/v1/collaboration/tasks",
+                serde_json::json!({
+                    "title": format!("Rate Limited Task {sequence}"),
+                }),
+            ))
+            .await
+            .expect("response should exist");
+
+        assert_eq!(response.status(), StatusCode::CREATED);
+        request_count += 1;
+        assert_eq!(
+            policy.is_exceeded(request_count),
+            sequence > 2,
+            "scope {:?} subject {} should exceed on the third request",
+            key.scope,
+            key.subject
+        );
+    }
+
+    let other_subject_key =
+        CollaborationRateLimitKey::new(CollaborationRateLimitScope::Tasks, "second-user")
+            .expect("second subject key should be valid");
+    assert!(
+        !policy.is_exceeded(1),
+        "first request for {} should be allowed",
+        other_subject_key.subject
+    );
+
+    let other_subject_response = app
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/v1/collaboration/tasks")
+                .header("content-type", "application/json")
+                .header("authorization", auth_header_for_subject("second-user"))
+                .header("x-api-version", "1")
+                .body(Body::from(
+                    serde_json::json!({
+                        "title": "Other subject request",
+                    })
+                    .to_string(),
+                ))
+                .expect("request should build"),
+        )
+        .await
+        .expect("response should exist");
+
+    assert_eq!(other_subject_response.status(), StatusCode::CREATED);
 }
