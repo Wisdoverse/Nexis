@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "nexis-gateway.fullname" . }}
+  labels:
+    {{- include "nexis-gateway.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "nexis-gateway.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "nexis-gateway.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.service.port }}
+          env:
+            - name: RUST_LOG
+              value: {{ .Values.env.RUST_LOG }}
+            - name: NEXIS_MAX_CONNECTIONS
+              value: {{ .Values.env.NEXIS_MAX_CONNECTIONS }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
