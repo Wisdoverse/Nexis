@@ -195,7 +195,42 @@ async fn main() -> anyhow::Result<()> {
     tracing::info!("Listening on {}", addr);
 
     let listener = tokio::net::TcpListener::bind(addr).await?;
-    axum::serve(listener, app).await?;
-
+    
+    // Graceful shutdown setup
+    let shutdown = async {
+        use tokio::signal;
+        
+        let ctrl_c = async {
+            signal::ctrl_c()
+                .await
+                .expect("failed to install Ctrl+C handler");
+        };
+        
+        #[cfg(unix)]
+        let terminate = async {
+            signal::unix::signal(signal::unix::SignalKind::terminate())
+                .expect("failed to install signal handler")
+                .recv()
+                .await;
+        };
+        
+        #[cfg(not(unix))]
+        let terminate = std::future::pending::<()>();
+        
+        tokio::select! {
+            _ = ctrl_c => tracing::info!("Received Ctrl+C"),
+            _ = terminate => tracing::info!("Received SIGTERM"),
+        }
+        
+        tracing::info!("Shutdown signal received, stopping gracefully...");
+    };
+    
+    // Run server with graceful shutdown
+    tokio::select! {
+        _ = axum::serve(listener, app) => {},
+        _ = shutdown => {},
+    }
+    
+    tracing::info!("Server stopped");
     Ok(())
 }
