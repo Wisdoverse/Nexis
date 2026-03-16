@@ -1,4 +1,4 @@
-//! Authentication module for Nexis Gateway
+//! Authentication module for Nexus Gateway
 //!
 //! This module provides JWT-based authentication for WebSocket connections.
 //! Currently implements token generation/verification; full integration pending.
@@ -169,11 +169,21 @@ where
         let config = JwtConfig::new("test-secret", "test".to_string(), "test".to_string());
 
         #[cfg(not(test))]
-        let config = JwtConfig::new(
-            &std::env::var("JWT_SECRET").unwrap_or_else(|_| "default_secret".to_string()),
-            std::env::var("JWT_ISSUER").unwrap_or_else(|_| "nexis".to_string()),
-            std::env::var("JWT_AUDIENCE").unwrap_or_else(|_| "nexis".to_string()),
-        );
+        let config = {
+            let secret = std::env::var("JWT_SECRET").unwrap_or_else(|_| {
+                let env = std::env::var("NEXIS_ENV").unwrap_or_default();
+                if env == "production" {
+                    panic!("JWT_SECRET must be set in production environment");
+                }
+                eprintln!("WARNING: Using default JWT secret. DO NOT use in production!");
+                "dev_only_secret_change_in_production".to_string()
+            });
+            JwtConfig::new(
+                &secret,
+                std::env::var("JWT_ISSUER").unwrap_or_else(|_| "nexis".to_string()),
+                std::env::var("JWT_AUDIENCE").unwrap_or_else(|_| "nexis".to_string()),
+            )
+        };
 
         let claims = config
             .verify_token(token)

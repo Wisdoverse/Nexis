@@ -40,7 +40,7 @@ fn security_config() -> &'static GatewaySecurityConfig {
         https_redirect_enabled: env_flag("NEXIS_HTTPS_REDIRECT_ENABLED", false),
         hsts_enabled: env_flag("NEXIS_HSTS_ENABLED", true),
         csp_policy: std::env::var("NEXIS_CSP_POLICY").unwrap_or_else(|_| {
-            "default-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; object-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https: wss:".to_string()
+            "default-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; object-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' https: wss:".to_string()
         }),
     })
 }
@@ -149,7 +149,15 @@ async fn security_headers_middleware(request: Request<axum::body::Body>, next: N
         HeaderValue::from_static("nosniff"),
     );
     headers.insert("x-frame-options", HeaderValue::from_static("DENY"));
-    headers.insert("referrer-policy", HeaderValue::from_static("no-referrer"));
+    headers.insert(
+        "cross-origin-opener-policy",
+        HeaderValue::from_static("same-origin"),
+    );
+    headers.insert(
+        "cross-origin-resource-policy",
+        HeaderValue::from_static("same-origin"),
+    );
+    headers.insert("referrer-policy", HeaderValue::from_static("strict-origin-when-cross-origin"));
     headers.insert(
         "permissions-policy",
         HeaderValue::from_static("camera=(), microphone=(), geolocation=()"),
@@ -164,7 +172,7 @@ async fn security_headers_middleware(request: Request<axum::body::Body>, next: N
     if config.hsts_enabled {
         headers.insert(
             "strict-transport-security",
-            HeaderValue::from_static("max-age=31536000; includeSubDomains"),
+            HeaderValue::from_static("max-age=31536000; includeSubDomains; preload"),
         );
     }
 
