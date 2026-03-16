@@ -15,6 +15,7 @@ path = "src/main.rs"
 default = []
 persistence-sqlx = ["dep:sqlx"]
 multi-tenant = []
+otel = ["dep:opentelemetry", "dep:opentelemetry-otlp", "dep:tracing-opentelemetry"]
 
 [dependencies]
 # Web
