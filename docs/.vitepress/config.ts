@@ -9,11 +9,29 @@ export default defineConfig({
   ignoreDeadLinks: true,
   
   head: [
+    // Favicon and theme
     ['link', { rel: 'icon', type: 'image/svg+xml', href: '/images/logo.svg' }],
     ['meta', { name: 'theme-color', content: '#6366f1' }],
-    ['meta', { name: 'og:type', content: 'website' }],
-    ['meta', { name: 'og:title', content: 'Nexis | Real-time Collaboration Platform' }],
-    ['meta', { name: 'og:description', content: 'Enterprise-grade, cloud-native, 100K+ concurrent connections' }],
+
+    // SEO meta tags
+    ['meta', { name: 'keywords', content: 'Nexis, real-time collaboration, WebSocket, Rust, cloud-native' }],
+    ['meta', { name: 'author', content: 'G-Brothers Group' }],
+
+    // Open Graph
+    ['meta', { property: 'og:type', content: 'website' }],
+    ['meta', { property: 'og:title', content: 'Nexis - Real-time Collaboration Platform' }],
+    ['meta', { property: 'og:description', content: 'Enterprise-grade, 100K+ concurrent connections' }],
+    ['meta', { property: 'og:image', content: 'https://gbrothersgroup.github.io/Nexis/images/og-image.png' }],
+    ['meta', { property: 'og:url', content: 'https://gbrothersgroup.github.io/Nexis/' }],
+
+    // Twitter Card
+    ['meta', { name: 'twitter:card', content: 'summary_large_image' }],
+    ['meta', { name: 'twitter:title', content: 'Nexis - Real-time Collaboration Platform' }],
+    ['meta', { name: 'twitter:description', content: 'Enterprise-grade, 100K+ concurrent connections' }],
+    ['meta', { name: 'twitter:image', content: 'https://gbrothersgroup.github.io/Nexis/images/og-image.png' }],
+
+    // Canonical URL
+    ['link', { rel: 'canonical', href: 'https://gbrothersgroup.github.io/Nexis/' }],
   ],
   
   themeConfig: {
