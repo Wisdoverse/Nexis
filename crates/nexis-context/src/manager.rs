@@ -222,15 +222,51 @@ impl ContextManager {
     }
 }
 
-/// Simple token estimation (approximately 4 chars per token)
+/// Estimate token count for text
+/// 
+/// Simple estimation that considers CJK characters:
+/// - CJK characters: ~1.5 chars/token
+/// - ASCII text: ~4 chars/token
 fn estimate_tokens(text: &str) -> usize {
-    (text.len() / 4).max(1)
+    let char_count = text.chars().count();
+    let byte_len = text.len();
+    
+    // If byte length significantly exceeds char count, we have multi-byte (CJK/Unicode)
+    if byte_len > char_count * 3 / 2 {
+        // Multi-byte chars: approximately 1.5 characters per token
+        (char_count as f64 / 1.5).ceil() as usize
+    } else {
+        // ASCII/English: approximately 4 characters per token
+        (char_count / 4).max(1)
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::summarizer::MockSummarizer;
+
+    #[test]
+    fn test_estimate_tokens_ascii() {
+        // ASCII text: ~4 chars per token
+        let tokens = estimate_tokens("hello world test message");
+        assert!(tokens > 0, "ASCII text should produce tokens");
+    }
+
+    #[test]
+    fn test_estimate_tokens_cjk() {
+        // CJK: ~1.5 chars per token
+        let cjk = "你好世界"; // 4 chars, 12 bytes
+        let tokens = estimate_tokens(cjk);
+        assert!(tokens >= 2, "CJK should use ~1.5 chars/token");
+    }
+
+    #[test]
+    fn test_estimate_tokens_mixed() {
+        let mixed = "Hello你好"; // 7 chars, 11 bytes -> CJK path
+        let tokens = estimate_tokens(mixed);
+        assert!(tokens > 1, "Mixed content should produce tokens");
+    }
 
     #[tokio::test]
     async fn test_create_and_get_context() {
