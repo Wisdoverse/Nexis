@@ -20,6 +20,11 @@ export default defineConfig({
     logo: '/images/logo.svg',
     siteTitle: 'Nexis',
     
+    // 自定义图标配置
+    icon: {
+      type: 'svg'
+    },
+    
     nav: [
       { text: 'Home', link: '/' },
       { text: 'Getting Started', link: '/en/getting-started/development-guide' },

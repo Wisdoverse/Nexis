@@ -117,7 +117,7 @@ opt-level = 3
 
 # Development profile
 [profile.dev]
-opt-level = 0
+opt-level = 1
 debug = true
 incremental = true
 
