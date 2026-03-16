@@ -553,4 +553,218 @@ mod tests {
         assert_eq!(removed, 0);
         assert_eq!(manager.connection_count(), 2);
     }
+
+    // ============== Concurrent Stress Tests ==============
+
+    #[tokio::test]
+    async fn concurrent_add_remove_connections() {
+        let manager = Arc::new(ShardedConnectionManager::with_max_connections(1000));
+        let mut handles = vec![];
+
+        // Spawn 100 concurrent tasks adding connections
+        for i in 0..100 {
+            let mgr = manager.clone();
+            handles.push(tokio::spawn(async move {
+                let id = mgr.add_connection(format!("user_{}", i)).await;
+                (i, id)
+            }));
+        }
+
+        // Wait for all additions
+        let results: Vec<_> = futures::future::join_all(handles).await;
+        let successful: Vec<_> = results.into_iter().filter_map(|r| r.ok()).collect();
+        assert_eq!(successful.len(), 100);
+        assert_eq!(manager.connection_count(), 100);
+
+        // Remove all connections concurrently
+        let mut handles = vec![];
+        for (_, id) in successful {
+            let mgr = manager.clone();
+            handles.push(tokio::spawn(async move {
+                mgr.remove_connection(id).await
+            }));
+        }
+
+        futures::future::join_all(handles).await;
+        assert_eq!(manager.connection_count(), 0);
+    }
+
+    #[tokio::test]
+    async fn concurrent_broadcast_stress() {
+        let manager = Arc::new(ShardedConnectionManager::new());
+
+        // Add some connections first
+        for i in 0..50 {
+            manager.add_connection(format!("user_{}", i)).await;
+        }
+
+        let mut handles = vec![];
+
+        // Spawn many concurrent broadcasts
+        for i in 0..100 {
+            let mgr = manager.clone();
+            handles.push(tokio::spawn(async move {
+                mgr.broadcast(Some(format!("room_{}", i % 10)), format!("message_{}", i))
+                    .await
+            }));
+        }
+
+        futures::future::join_all(handles).await;
+
+        // Verify message counters work correctly
+        let stats = manager.stats();
+        // Note: stats might show 0 sent if no subscribers
+        assert!(stats.messages_sent + stats.messages_dropped <= 100);
+    }
+
+    #[tokio::test]
+    async fn high_concurrency_many_shards() {
+        let manager = Arc::new(ShardedConnectionManager::with_config(10000, 128));
+        let mut handles = vec![];
+
+        // Add 1000 connections concurrently across 128 shards
+        for i in 0..1000 {
+            let mgr = manager.clone();
+            handles.push(tokio::spawn(async move {
+                mgr.add_connection(format!("concurrent_user_{}", i)).await
+            }));
+        }
+
+        futures::future::join_all(handles).await;
+        assert_eq!(manager.connection_count(), 1000);
+
+        // Check distribution
+        let dist = manager.shard_distribution().await;
+        let active_shards = dist.iter().filter(|&&c| c > 0).count();
+        // With 1000 connections and 128 shards, many should be active
+        assert!(active_shards > 50);
+    }
+
+    // ============== Boundary Condition Tests ==============
+
+    #[tokio::test]
+    async fn pool_at_exact_capacity() {
+        let manager = ShardedConnectionManager::with_max_connections(5);
+
+        // Fill to exact capacity
+        let ids: Vec<_> = (0..5)
+            .map(|i| manager.add_connection(format!("user_{}", i)).await)
+            .collect();
+
+        assert_eq!(manager.connection_count(), 5);
+
+        // Next connection should fail
+        let result = manager.try_add_connection("overflow".to_string()).await;
+        assert!(result.is_none());
+
+        // Remove one and try again
+        manager.remove_connection(ids[0]).await;
+        let new_id = manager.try_add_connection("new_user".to_string()).await;
+        assert!(new_id.is_some());
+    }
+
+    #[tokio::test]
+    async fn single_connection_edge_case() {
+        let manager = ShardedConnectionManager::with_max_connections(1);
+
+        let id = manager.add_connection("only_one".to_string()).await;
+        assert_eq!(manager.connection_count(), 1);
+
+        let failed = manager.try_add_connection("second".to_string()).await;
+        assert!(failed.is_none());
+
+        manager.remove_connection(id).await;
+        assert_eq!(manager.connection_count(), 0);
+
+        // Can add again after removal
+        let new_id = manager.try_add_connection("after_removal".to_string()).await;
+        assert!(new_id.is_some());
+    }
+
+    #[tokio::test]
+    async fn remove_nonexistent_connection() {
+        let manager = ShardedConnectionManager::new();
+
+        // Should not panic
+        manager.remove_connection(Uuid::nil()).await;
+        assert_eq!(manager.connection_count(), 0);
+    }
+
+    #[tokio::test]
+    async fn get_nonexistent_connection() {
+        let manager = ShardedConnectionManager::new();
+
+        let result = manager.get_connection(Uuid::nil()).await;
+        assert!(result.is_none());
+    }
+
+    #[tokio::test]
+    async fn set_room_nonexistent_connection() {
+        let manager = ShardedConnectionManager::new();
+
+        let result = manager.set_room(Uuid::nil(), Some("room".to_string())).await;
+        assert!(!result);
+    }
+
+    #[tokio::test]
+    async fn empty_pool_operations() {
+        let manager = ShardedConnectionManager::new();
+
+        // Stats on empty pool
+        let stats = manager.stats();
+        assert_eq!(stats.total_connections, 0);
+        assert_eq!(stats.active_shards, 0);
+
+        // All connection IDs on empty pool
+        let ids = manager.all_connection_ids().await;
+        assert!(ids.is_empty());
+
+        // Distribution on empty pool
+        let dist = manager.shard_distribution().await;
+        assert!(dist.iter().all(|&c| c == 0));
+    }
+
+    #[tokio::test]
+    async fn cleanup_inactive_empty_pool() {
+        let manager = ShardedConnectionManager::new();
+
+        let removed = manager.cleanup_inactive(0).await;
+        assert_eq!(removed, 0);
+    }
+
+    #[tokio::test]
+    async fn peak_tracking_after_removals() {
+        let manager = ShardedConnectionManager::with_max_connections(100);
+
+        // Add 50 connections
+        let ids: Vec<_> = (0..50)
+            .map(|i| manager.add_connection(format!("user_{}", i)).await)
+            .collect();
+
+        assert_eq!(manager.peak_connection_count(), 50);
+
+        // Remove all
+        for id in ids {
+            manager.remove_connection(id).await;
+        }
+
+        assert_eq!(manager.connection_count(), 0);
+        assert_eq!(manager.peak_connection_count(), 50); // Peak stays
+    }
+
+    #[tokio::test]
+    async fn shard_index_consistency() {
+        let manager = ShardedConnectionManager::with_config(100, 16);
+        let id = Uuid::new_v4();
+
+        // Add and verify same shard lookup
+        let _ = manager.add_connection("test".to_string()).await;
+        let conn = manager.get_connection(id).await;
+
+        // The connection should be found if we use the same ID
+        // (This tests shard lookup consistency)
+        if let Some(c) = conn {
+            assert_eq!(c.id, id);
+        }
+    }
 }

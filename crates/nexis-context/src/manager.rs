@@ -373,4 +373,205 @@ mod tests {
         manager.create_context(None).await.unwrap();
         assert_eq!(manager.context_count().await, 2);
     }
+
+    // ============== CJK Token Estimation Tests ==============
+
+    #[test]
+    fn test_estimate_tokens_pure_cjk() {
+        // Pure Chinese - each char is 3 bytes, should use CJK estimation
+        let chinese = "这是一个测试消息内容";
+        let tokens = estimate_tokens(chinese);
+        // 10 chars, ~1.5 chars/token = ~7 tokens
+        assert!(tokens >= 6, "Expected ~7 tokens for CJK, got {}", tokens);
+        assert!(tokens <= 8, "Expected ~7 tokens for CJK, got {}", tokens);
+    }
+
+    #[test]
+    fn test_estimate_tokens_japanese() {
+        // Japanese hiragana/katakana - multi-byte
+        let japanese = "こんにちはせかい";
+        let tokens = estimate_tokens(japanese);
+        assert!(tokens >= 2, "Japanese text should produce tokens");
+    }
+
+    #[test]
+    fn test_estimate_tokens_korean() {
+        // Korean Hangul - multi-byte
+        let korean = "안녕하세요";
+        let tokens = estimate_tokens(korean);
+        assert!(tokens >= 2, "Korean text should produce tokens");
+    }
+
+    #[test]
+    fn test_estimate_tokens_cjk_with_ascii() {
+        // Mixed CJK and ASCII - byte length > char count * 1.5
+        let mixed = "Hello世界Test测试";
+        let tokens = estimate_tokens(mixed);
+        assert!(tokens > 1, "Mixed content should use CJK estimation");
+    }
+
+    #[test]
+    fn test_estimate_tokens_long_ascii() {
+        // Long ASCII text
+        let long_ascii = "This is a very long English sentence that should be tokenized using the ASCII ratio of approximately four characters per token";
+        let tokens = estimate_tokens(long_ascii);
+        // ~130 chars / 4 = ~32 tokens
+        assert!(tokens >= 30, "Long ASCII should produce ~32 tokens, got {}", tokens);
+    }
+
+    #[test]
+    fn test_estimate_tokens_single_char_ascii() {
+        let tokens = estimate_tokens("a");
+        assert_eq!(tokens, 1, "Single ASCII char should be 1 token");
+    }
+
+    #[test]
+    fn test_estimate_tokens_single_cjk_char() {
+        let tokens = estimate_tokens("你");
+        assert!(tokens >= 1, "Single CJK char should produce at least 1 token");
+    }
+
+    #[test]
+    fn test_estimate_tokens_empty_string() {
+        let tokens = estimate_tokens("");
+        assert_eq!(tokens, 0, "Empty string should produce 0 tokens");
+    }
+
+    #[test]
+    fn test_estimate_tokens_whitespace() {
+        let tokens = estimate_tokens("   ");
+        assert!(tokens >= 1, "Whitespace should produce at least 1 token");
+    }
+
+    #[test]
+    fn test_estimate_tokens_emoji() {
+        // Emoji are multi-byte (4 bytes each typically)
+        let emoji = "😀🎉🚀";
+        let tokens = estimate_tokens(emoji);
+        assert!(tokens >= 1, "Emoji should produce tokens");
+    }
+
+    // ============== Overflow Boundary Tests ==============
+
+    #[tokio::test]
+    async fn test_window_exact_fit() {
+        let window = ContextWindow::new(100);
+        let manager = ContextManager::new(window);
+        let id = manager.create_context(None).await.unwrap();
+
+        // Add messages that exactly fit
+        let msg = Message::user("a".repeat(96)); // ~24 tokens
+        manager.add_message(id, msg).await.unwrap();
+
+        let context = manager.get_context(id).await.unwrap();
+        assert_eq!(context.messages.len(), 1);
+    }
+
+    #[tokio::test]
+    async fn test_window_one_over() {
+        let window = ContextWindow::new(10); // Very small
+        let manager = ContextManager::new(window);
+        let id = manager.create_context(None).await.unwrap();
+
+        // Add a message that barely overflows
+        let msg = Message::user("This message is longer than ten tokens would allow");
+        manager.add_message(id, msg).await.unwrap();
+
+        let context = manager.get_context(id).await.unwrap();
+        // Should have truncated or fit somehow
+        assert!(!context.messages.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_window_zero_capacity() {
+        let window = ContextWindow::new(0);
+        let manager = ContextManager::new(window);
+        let id = manager.create_context(None).await.unwrap();
+
+        let msg = Message::user("test");
+        let result = manager.add_message(id, msg).await;
+
+        // Should either fail or handle gracefully
+        // Depending on implementation, might truncate or error
+        if let Ok(context) = manager.get_context(id).await {
+            assert!(context.messages.len() <= 1);
+        }
+    }
+
+    #[tokio::test]
+    async fn test_window_many_small_messages() {
+        let window = ContextWindow::new(50);
+        let manager = ContextManager::new(window);
+        let id = manager.create_context(None).await.unwrap();
+
+        // Add many small messages
+        for i in 0..100 {
+            let msg = Message::user(format!("M{}", i)); // Very short
+            let _ = manager.add_message(id, msg).await;
+        }
+
+        let context = manager.get_context(id).await.unwrap();
+        // Should have truncated some
+        assert!(context.messages.len() < 100);
+    }
+
+    #[tokio::test]
+    async fn test_window_single_large_message() {
+        let window = ContextWindow::new(100);
+        let manager = ContextManager::new(window);
+        let id = manager.create_context(None).await.unwrap();
+
+        // One very large message
+        let large_content = "x".repeat(1000);
+        let msg = Message::user(large_content);
+        manager.add_message(id, msg).await.unwrap();
+
+        let context = manager.get_context(id).await.unwrap();
+        assert!(!context.messages.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_window_overflow_strategy_fail() {
+        let window = ContextWindow::new(10).with_overflow_strategy(OverflowStrategy::Fail);
+        let manager = ContextManager::new(window);
+        let id = manager.create_context(None).await.unwrap();
+
+        // First message should fit
+        let msg1 = Message::user("short");
+        let result1 = manager.add_message(id, msg1).await;
+        assert!(result1.is_ok());
+
+        // Large message should fail with Fail strategy
+        let msg2 = Message::user("This is a very long message that will overflow");
+        let result2 = manager.add_message(id, msg2).await;
+        assert!(result2.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_delete_nonexistent_context() {
+        let manager = ContextManager::new(ContextWindow::default());
+        let fake_id = Uuid::new_v4();
+
+        let result = manager.delete_context(fake_id).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_get_nonexistent_context() {
+        let manager = ContextManager::new(ContextWindow::default());
+        let fake_id = Uuid::new_v4();
+
+        let result = manager.get_context(fake_id).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_add_message_to_nonexistent_context() {
+        let manager = ContextManager::new(ContextWindow::default());
+        let fake_id = Uuid::new_v4();
+
+        let msg = Message::user("test");
+        let result = manager.add_message(fake_id, msg).await;
+        assert!(result.is_err());
+    }
 }

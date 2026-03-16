@@ -21,35 +21,37 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: docs/package-lock.json
 
-      - name: Cache cargo
-        uses: Swatinem/rust-cache@v2
+      - name: Install dependencies
+        working-directory: docs
+        run: npm ci
 
-      - name: Install mdBook
-        run: cargo install mdbook --locked --version 0.4.43
+      - name: Build VitePress site
+        working-directory: docs
+        run: npm run docs:build
 
       - name: Build Rust API documentation
-        run: |
-          cargo doc --workspace --no-deps --document-private-items
+        run: cargo doc --workspace --no-deps
 
-      - name: Build mdBook site
-        run: mdbook build docs-src
-
-      - name: Merge site artifacts
+      - name: Merge documentation
         run: |
-          rm -rf target/site
-          mkdir -p target/site/api/rust
-          cp -r docs-src/book/* target/site/
-          cp -r target/doc/* target/site/api/rust/
-          touch target/site/.nojekyll
+          mkdir -p docs/.vitepress/dist/api/rust
+          cp -r target/doc/* docs/.vitepress/dist/api/rust/
+          touch docs/.vitepress/dist/.nojekyll
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: target/site
+          path: docs/.vitepress/dist
 
   deploy:
     name: Deploy to GitHub Pages

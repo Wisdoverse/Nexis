@@ -22,7 +22,7 @@ Unauthenticated requests to protected endpoints return `401 Unauthorized`.
 
 ## Endpoints
 
-### Health
+### Health Check
 
 | Method | Endpoint | Description | Auth |
 |--------|----------|-------------|------|
@@ -30,7 +30,7 @@ Unauthenticated requests to protected endpoints return `401 Unauthorized`.
 
 **Response:** `200 OK` - Plain text `OK`
 
-### Rooms
+### Rooms API
 
 | Method | Endpoint | Description | Auth |
 |--------|----------|-------------|------|
@@ -40,7 +40,7 @@ Unauthenticated requests to protected endpoints return `401 Unauthorized`.
 | DELETE | /v1/rooms/{id} | Delete a room | Yes |
 | POST | /v1/rooms/{id}/invite | Invite member | Yes |
 
-#### GET /v1/rooms
+#### List Rooms
 
 Query parameters:
 - `limit` (optional, default: 100, max: 1000) - Max rooms to return
@@ -61,7 +61,7 @@ Response:
 }
 ```
 
-#### POST /v1/rooms
+#### Create Room
 
 Request:
 ```json
@@ -79,7 +79,7 @@ Response: `201 Created`
 }
 ```
 
-#### GET /v1/rooms/{id}
+#### Get Room
 
 Response:
 ```json
@@ -98,17 +98,17 @@ Response:
 }
 ```
 
-#### DELETE /v1/rooms/{id}
+#### Delete Room
 
 Response: `204 No Content` (empty body)
 
-### Messages
+### Messages API
 
 | Method | Endpoint | Description | Auth |
 |--------|----------|-------------|------|
 | POST | /v1/messages | Send a message | Yes |
 
-#### POST /v1/messages
+#### Send Message
 
 Request:
 ```json
@@ -127,14 +127,14 @@ Response: `201 Created`
 }
 ```
 
-### Search
+### Search API
 
 | Method | Endpoint | Description | Auth |
 |--------|----------|-------------|------|
 | GET | /v1/search | Semantic search | Yes |
 | POST | /v1/search | Semantic search | Yes |
 
-#### GET /v1/search
+#### Search Messages
 
 Query parameters:
 - `q` (required) - Search query string
@@ -158,21 +158,7 @@ Response:
 }
 ```
 
-#### POST /v1/search
-
-Request body:
-```json
-{
-  "query": "project updates",
-  "limit": 10,
-  "min_score": 0.5,
-  "room_id": "550e8400-e29b-41d4-a716-446655440001"
-}
-```
-
-Response: Same as GET /v1/search
-
-## WebSocket
+## WebSocket API
 
 Connect to `/ws` for real-time messaging. No authentication required on the WebSocket endpoint.
 
@@ -183,7 +169,7 @@ Connect to `/ws` for real-time messaging. No authentication required on the WebS
 - `room:join` - User joined room
 - `room:leave` - User left room
 
-## Error Response Format
+## Error Handling
 
 All errors return a consistent JSON format:
 
@@ -194,7 +180,7 @@ All errors return a consistent JSON format:
 }
 ```
 
-## Error Codes
+### Error Codes
 
 | Code | HTTP Status | Description |
 |------|-------------|-------------|

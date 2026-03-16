@@ -284,4 +284,189 @@ mod tests {
             }
         ));
     }
+
+    // ============== Capacity Check Tests ==============
+
+    #[test]
+    fn try_join_room_capacity_boundary() {
+        let mut room = SfuRoom::new(SfuConfig {
+            max_participants: 3,
+            video_codec: "vp9".to_owned(),
+            audio_codec: "opus".to_owned(),
+        });
+
+        // Join exactly at capacity
+        let r1 = room.try_join_room();
+        let r2 = room.try_join_room();
+        let r3 = room.try_join_room();
+
+        assert!(r1.is_ok());
+        assert!(r2.is_ok());
+        assert!(r3.is_ok());
+        assert_eq!(room.participants().len(), 3);
+
+        // One over capacity should fail
+        let r4 = room.try_join_room();
+        assert!(r4.is_err());
+    }
+
+    #[test]
+    fn try_join_room_after_leave() {
+        let mut room = SfuRoom::new(SfuConfig {
+            max_participants: 2,
+            video_codec: "vp9".to_owned(),
+            audio_codec: "opus".to_owned(),
+        });
+
+        let id1 = room.try_join_room().unwrap();
+        let id2 = room.try_join_room().unwrap();
+
+        // At capacity
+        let r3 = room.try_join_room();
+        assert!(r3.is_err());
+
+        // Leave one
+        room.leave_room(id1);
+
+        // Should be able to join again
+        let r4 = room.try_join_room();
+        assert!(r4.is_ok());
+    }
+
+    #[test]
+    fn max_participants_one() {
+        let mut room = SfuRoom::new(SfuConfig {
+            max_participants: 1,
+            video_codec: "vp9".to_owned(),
+            audio_codec: "opus".to_owned(),
+        });
+
+        let r1 = room.try_join_room();
+        assert!(r1.is_ok());
+
+        let r2 = room.try_join_room();
+        assert!(r2.is_err());
+    }
+
+    #[test]
+    fn max_participants_large_capacity() {
+        let mut room = SfuRoom::new(SfuConfig {
+            max_participants: 1000,
+            video_codec: "vp9".to_owned(),
+            audio_codec: "opus".to_owned(),
+        });
+
+        // Add many participants
+        for _ in 0..500 {
+            let result = room.try_join_room();
+            assert!(result.is_ok());
+        }
+
+        assert_eq!(room.participants().len(), 500);
+    }
+
+    #[test]
+    fn join_room_vs_try_join_room_consistency() {
+        let mut room = SfuRoom::new(SfuConfig {
+            max_participants: 5,
+            video_codec: "vp9".to_owned(),
+            audio_codec: "opus".to_owned(),
+        });
+
+        // Both should work under capacity
+        let id1 = room.join_room();
+        let id2 = room.try_join_room().unwrap();
+
+        assert!(room.participants().contains(&id1));
+        assert!(room.participants().contains(&id2));
+    }
+
+    #[test]
+    fn capacity_with_tracks() {
+        let mut room = SfuRoom::new(SfuConfig {
+            max_participants: 2,
+            video_codec: "vp9".to_owned(),
+            audio_codec: "opus".to_owned(),
+        });
+
+        let p1 = room.join_room();
+        let p2 = room.join_room();
+
+        // Publish and subscribe
+        room.publish_track(p1, MediaTrack::Audio, vec![1, 2, 3]);
+        room.publish_track(p1, MediaTrack::Video, vec![4, 5, 6]);
+        room.subscribe_track(p2, MediaTrack::Audio);
+        room.subscribe_track(p2, MediaTrack::Video);
+
+        // At capacity - should still fail
+        let r3 = room.try_join_room();
+        assert!(r3.is_err());
+    }
+
+    #[test]
+    fn leave_room_frees_capacity() {
+        let mut room = SfuRoom::new(SfuConfig {
+            max_participants: 1,
+            video_codec: "vp9".to_owned(),
+            audio_codec: "opus".to_owned(),
+        });
+
+        let id = room.join_room();
+        assert!(room.try_join_room().is_err());
+
+        room.leave_room(id);
+        assert!(room.try_join_room().is_ok());
+    }
+
+    #[test]
+    fn capacity_error_message_contains_limit() {
+        let mut room = SfuRoom::new(SfuConfig {
+            max_participants: 1,
+            video_codec: "vp9".to_owned(),
+            audio_codec: "opus".to_owned(),
+        });
+
+        room.join_room();
+        let result = room.try_join_room();
+
+        if let Err(crate::error::MeetingError::RoomCapacityExceeded { max_participants }) = result
+        {
+            assert_eq!(max_participants, 1);
+        } else {
+            panic!("Expected RoomCapacityExceeded error");
+        }
+    }
+
+    #[test]
+    fn rapid_join_leave_cycles() {
+        let mut room = SfuRoom::new(SfuConfig {
+            max_participants: 2,
+            video_codec: "vp9".to_owned(),
+            audio_codec: "opus".to_owned(),
+        });
+
+        for _ in 0..10 {
+            let id1 = room.join_room();
+            let id2 = room.join_room();
+
+            assert!(room.try_join_room().is_err());
+
+            room.leave_room(id1);
+            room.leave_room(id2);
+
+            assert_eq!(room.participants().len(), 0);
+        }
+    }
+
+    #[test]
+    fn config_reflects_capacity() {
+        let config = SfuConfig {
+            max_participants: 42,
+            video_codec: "vp9".to_owned(),
+            audio_codec: "opus".to_owned(),
+        };
+
+        let room = SfuRoom::new(config);
+        assert_eq!(room.config().max_participants, 42);
+    }
 }
