@@ -1,14 +1,32 @@
 apiVersion: v2
 name: nexis-gateway
-description: Nexis Real-time Collaboration Gateway
+description: Nexis AI-Native Team Communication Platform - Enterprise-grade WebSocket gateway
+
+# A chart can be either an 'application' or a 'library' chart.
 type: application
+
+# Chart version
 version: 0.1.0
+
+# Application version
 appVersion: "0.1.0"
-keywords:
-  - real-time
-  - collaboration
-  - websocket
-  - ai
+
+# Chart metadata
 home: https://github.com/gbrothersgroup/Nexis
+sources:
+  - https://github.com/gbrothersgroup/Nexis
 maintainers:
   - name: Nexis Team
+    email: team@nexis.io
+
+# Keywords for search
+keywords:
+  - collaboration
+  - websocket
+  - ai-native
+  - real-time
+  - rust
+  - cloud-native
+
+# Dependencies (optional)
+dependencies: []
