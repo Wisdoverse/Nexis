@@ -1,4 +1,13 @@
 //! Database and repository layer for message persistence.
+//!
+//! This module provides:
+//! - Connection pool management
+//! - Repository traits for CRUD operations
+//! - Multi-tenant models (with `multi-tenant` feature)
+
+// Multi-tenant models
+#[cfg(feature = "multi-tenant")]
+pub mod models;
 
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};

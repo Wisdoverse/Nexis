@@ -6,7 +6,7 @@ use axum::{
     http::{HeaderValue, Request, StatusCode},
     middleware::{self, Next},
     response::{Html, IntoResponse, Response},
-    routing::{get, post},
+    routing::{delete, get, post},
     Json, Router,
 };
 use serde::{Deserialize, Serialize};
@@ -29,7 +29,7 @@ use crate::search::{SearchError, SearchRequest, SearchService};
 use crate::auth::TenantStore;
 
 #[derive(Clone)]
-struct AppState {
+pub(crate) struct AppState {
     rooms: Arc<RwLock<HashMap<String, Room>>>,
     room_messages: Arc<RwLock<HashMap<String, Vec<StoredMessage>>>>,
     room_members: Arc<RwLock<HashMap<String, Vec<String>>>>,
@@ -65,7 +65,7 @@ const MAX_MESSAGE_TEXT_LEN: usize = 32 * 1024;
 const OPENAPI_JSON: &str = include_str!("openapi.json");
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-struct Room {
+pub(crate) struct Room {
     id: String,
     name: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -107,7 +107,7 @@ struct SendMessageResponse {
 }
 
 #[derive(Debug, Clone, Serialize)]
-struct StoredMessage {
+pub(crate) struct StoredMessage {
     id: String,
     sender: String,
     text: String,
@@ -279,6 +279,8 @@ pub fn build_routes() -> Router {
         .route("/v1/rooms/:id/invite", post(invite_member))
         .route("/v1/messages", post(send_message))
         .route("/v1/search", get(search_messages_get).post(search_messages))
+        .route("/v1/members/me/export", get(crate::handlers::gdpr::export_data))
+        .route("/v1/members/me", delete(crate::handlers::gdpr::delete_data))
         .merge(crate::collaboration::routes())
         .layer(middleware::from_fn(correlation_id_middleware))
         .with_state(state)
@@ -299,6 +301,8 @@ pub fn build_routes_with_search(search_service: Arc<dyn SearchService>) -> Route
         .route("/v1/rooms/:id/invite", post(invite_member))
         .route("/v1/messages", post(send_message))
         .route("/v1/search", get(search_messages_get).post(search_messages))
+        .route("/v1/members/me/export", get(crate::handlers::gdpr::export_data))
+        .route("/v1/members/me", delete(crate::handlers::gdpr::delete_data))
         .merge(crate::collaboration::routes())
         .layer(middleware::from_fn(correlation_id_middleware))
         .with_state(state)
@@ -413,10 +417,33 @@ async fn correlation_id_middleware(request: Request<axum::body::Body>, next: Nex
 
     response
 }
+/// Query parameters for WebSocket connection (deprecated, use first-message auth instead)
+#[derive(Debug, Clone, Deserialize)]
+struct WebSocketAuthQuery {
+    /// JWT token (deprecated: prefer first-message authentication)
+    #[serde(default)]
+    token: Option<String>,
+}
 
 /// WebSocket handler
-async fn websocket_handler(ws: WebSocketUpgrade) -> Response {
-    ws.on_upgrade(handle_socket)
+async fn websocket_handler(
+    ws: WebSocketUpgrade,
+    Query(query): Query<WebSocketAuthQuery>,
+) -> Response {
+    use crate::connection::AUTH_TIMEOUT_SECS;
+    
+    // Check for deprecated token in query parameter
+    let legacy_token = query.token;
+    if legacy_token.is_some() {
+        tracing::warn!(
+            "DEPRECATION WARNING: WebSocket authentication via query parameter is deprecated. \
+             Use first-message authentication instead. Token in URL may be logged and expose credentials. \
+             Migrate to sending {{\"type\":\"auth\",\"token\":\"Bearer xxx\"}} as the first message."
+        );
+    }
+    
+    // Pass the optional legacy token to the socket handler
+    ws.on_upgrade(move |socket| handle_socket(socket, legacy_token))
 }
 
 #[tracing::instrument(
@@ -873,11 +900,53 @@ async fn delete_room(
 }
 
 /// Handle WebSocket connection
-async fn handle_socket(socket: WebSocket) {
+async fn handle_socket(socket: WebSocket, legacy_token: Option<String>) {
+    use crate::connection::{
+        parse_client_message, serialize_server_message, create_auth_timeout_message,
+        ClientMessage, ServerMessage, ConnectionState, WebSocketAuthenticator, MessageResult, AUTH_TIMEOUT,
+    };
     use futures::{SinkExt, StreamExt};
+    use tokio::time::timeout;
 
+    let authenticator = WebSocketAuthenticator::from_env();
     let (mut sender, mut receiver) = socket.split();
     let (tx, mut rx) = mpsc::channel::<Message>(256);
+
+    // If legacy token is provided, pre-authenticate
+    let mut state = if let Some(token) = legacy_token {
+        // Attempt to authenticate with the legacy token
+        match authenticator.verify_token(&token) {
+            Ok(claims) => {
+                tracing::info!(
+                    member_id = %claims.sub,
+                    "WebSocket authenticated via legacy query parameter"
+                );
+                // Send success message
+                let msg = ServerMessage::AuthSuccess {
+                    member_id: claims.sub.clone(),
+                    member_type: claims.member_type.clone(),
+                };
+                if let Ok(json) = serialize_server_message(&msg) {
+                    let _ = tx.send(Message::Text(json)).await;
+                }
+                ConnectionState::Authenticated
+            }
+            Err(e) => {
+                tracing::warn!("Legacy token validation failed: {}", e);
+                let msg = ServerMessage::AuthError {
+                    message: format!("Authentication failed: {}", e),
+                    code: Some("AUTH_FAILED".to_string()),
+                };
+                if let Ok(json) = serialize_server_message(&msg) {
+                    let _ = tx.send(Message::Text(json)).await;
+                }
+                // Still allow connection but require first-message auth
+                ConnectionState::Unauthenticated
+            }
+        }
+    } else {
+        ConnectionState::Unauthenticated
+    };
 
     let writer = tokio::spawn(async move {
         while let Some(message) = rx.recv().await {
@@ -887,24 +956,88 @@ async fn handle_socket(socket: WebSocket) {
         }
     });
 
-    while let Some(msg) = receiver.next().await {
-        match msg {
-            Ok(Message::Text(text)) => {
-                tracing::debug!("Received: {}", text);
-                if tx.send(Message::Text(text)).await.is_err() {
+    // Authentication timeout - wrap the entire message loop
+    let auth_timeout_future = async {
+        while let Some(msg) = receiver.next().await {
+            match msg {
+                Ok(Message::Text(text)) => {
+                    tracing::debug!("Received: {}", text);
+                    
+                    // Parse the message
+                    match parse_client_message(&text) {
+                        Ok(client_msg) => {
+                            
+                            match authenticator.process_message(state, &client_msg) {
+                                MessageResult::Response(server_msg) => {
+                                    // Check if this was a successful auth
+                                    if let ServerMessage::AuthSuccess { .. } = &server_msg {
+                                        state = ConnectionState::Authenticated;
+                                    }
+                                    
+                                    if let Ok(json) = serialize_server_message(&server_msg) {
+                                        if tx.send(Message::Text(json)).await.is_err() {
+                                            break;
+                                        }
+                                    }
+                                }
+                                MessageResult::Authenticated(session) => {
+                                    tracing::info!(
+                                        member_id = %session.member_id,
+                                        "WebSocket authenticated"
+                                    );
+                                    state = ConnectionState::Authenticated;
+                                }
+                                MessageResult::CloseConnection => {
+                                    tracing::debug!("Closing connection by request");
+                                    break;
+                                }
+                                MessageResult::NoResponse => {
+                                    // Message handled, no response needed
+                                    // In a full implementation, this would handle room joins, etc.
+                                }
+                            }
+                        }
+                        Err(e) => {
+                            tracing::warn!("Failed to parse WebSocket message: {}", e);
+                            let error_msg = ServerMessage::Error {
+                                message: format!("Invalid message format: {}", e),
+                                code: Some("PARSE_ERROR".to_string()),
+                            };
+                            if let Ok(json) = serialize_server_message(&error_msg) {
+                                let _ = tx.send(Message::Text(json)).await;
+                            }
+                        }
+                    }
+                }
+                Ok(Message::Close(_)) => {
+                    tracing::debug!("Client disconnected");
                     break;
                 }
+                Err(e) => {
+                    tracing::error!("WebSocket error: {}", e);
+                    break;
+                }
+                _ => {}
             }
-            Ok(Message::Close(_)) => {
-                tracing::debug!("Client disconnected");
-                break;
-            }
-            Err(e) => {
-                tracing::error!("WebSocket error: {}", e);
-                break;
-            }
-            _ => {}
         }
+    };
+
+    // Apply timeout only if not already authenticated via legacy token
+    if state == ConnectionState::Unauthenticated {
+        match timeout(AUTH_TIMEOUT, auth_timeout_future).await {
+            Ok(()) => {
+                // Connection closed normally
+            }
+            Err(_) => {
+                // Timeout - send error and close
+                tracing::warn!("WebSocket authentication timeout");
+                let _ = tx.send(Message::Text(create_auth_timeout_message())).await;
+                let _ = tx.send(Message::Close(None)).await;
+            }
+        }
+    } else {
+        // Already authenticated, run without timeout
+        auth_timeout_future.await;
     }
 
     writer.abort();

@@ -4,8 +4,15 @@
 //! Integrates with the server module for real-time communication.
 
 mod pool;
+mod auth;
 
 pub use pool::{BroadcastMessage, Connection, ConnectionId, PoolStats, ShardedConnectionManager};
+
+pub use auth::{
+    parse_client_message, serialize_server_message, create_auth_timeout_message,
+    ClientMessage, ServerMessage, ConnectionState, AuthenticatedSession,
+    WebSocketAuthenticator, MessageResult, AUTH_TIMEOUT, AUTH_TIMEOUT_SECS,
+};
 
 // Legacy exports for backward compatibility
 #[allow(dead_code)] // Used by tests, pending server integration
