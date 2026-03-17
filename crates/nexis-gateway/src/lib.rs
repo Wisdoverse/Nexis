@@ -24,13 +24,16 @@ pub mod router;
 pub mod search;
 pub mod server;
 
+// Legacy tracing module - deprecated, use observability::tracing instead
 #[cfg(feature = "otel")]
+#[deprecated(note = "Use observability::tracing module instead")]
 pub mod tracing;
 
 #[allow(unused_imports)]
 pub use auth::{AuthError, AuthenticatedUser, Claims, JwtConfig};
 pub use indexing::{IndexingService, MessageIndexer};
 pub use metrics::{export as export_metrics, init_metrics};
+pub use observability::init_logging;
 pub use router::build_routes;
 pub use search::{SearchRequest, SearchResponse, SearchService, SemanticSearchService};
 

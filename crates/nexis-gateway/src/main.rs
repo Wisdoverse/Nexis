@@ -182,7 +182,7 @@ async fn security_headers_middleware(request: Request<axum::body::Body>, next: N
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     // Initialize tracing + export config
-    observability::init_tracing()?;
+    observability::init_logging()?;
 
     tracing::info!("Starting Nexus Gateway v{}", env!("CARGO_PKG_VERSION"));
     init_metrics();
