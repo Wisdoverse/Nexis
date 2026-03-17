@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added (P2)
+- TypeScript SDK with auth, rooms, messages, WebSocket support
+- Python SDK with async client and WebSocket
+- Web UI MVP scaffold (React 18 + TypeScript + Vite + TailwindCSS)
+- Plugin system architecture with 4 extension points
+- 5 official plugins: GitHub, Jira, Translate, Poll, Welcome
+
+### Added (P1)
+- AI summarizer for messages and meetings
+- Key management documentation
+- Multi-tenant database schema (tenants, workspaces, members)
+- WebSocket first-message authentication
+- GDPR data rights API (export, right to be forgotten)
+
+### Added (P0)
+- K8s Helm Charts with security best practices
+- OpenAPI 3.0.3 Schema
+- Pricing pages (EN + ZH)
+- Security response headers (COOP, CORP, HSTS preload)
+- JWT security (production env detection)
+
 ### Added
 - Documentation structure normalized into strict `docs/en` and `docs/zh-CN` trees.
 - `CODE_OF_CONDUCT.md` based on Contributor Covenant.
@@ -45,6 +66,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Root `README.md` is now English only.
 - `README.zh-CN.md` is now Chinese only.
 - Security policy now points to the new architecture security docs.
+- **docs**: Replaced mdBook with VitePress for documentation site
+- **docs**: Professional UI/UX redesign with modern styling
+- **docs**: Added page transitions for smoother navigation
+- **docs**: Added breadcrumb navigation for better UX
+- **docs**: Enhanced code blocks with syntax highlighting and copy buttons
 - **nexis-context**: `OverflowStrategy::Summarize` now functional (was TODO).
 - **nexis-context**: Added `with_overflow_strategy()` and `with_reserved_tokens()` builders.
 - **nexis-context**: Added metrics tracking for summarization success/failure and latency.
@@ -52,14 +78,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **web**: Updated tsconfig to ES2022 for `.at()` support.
 - **web**: Excluded e2e tests (playwright) from vitest runner.
 
+### Deprecated
+- N/A
+
+### Removed
+- N/A
+
 ### Fixed
 - Internal markdown links updated after docs reorganization.
 - **nexis-meeting**: SfuRoom now properly enforces `max_participants` via `try_join_room()`.
+- **nexis-gateway**: Fixed WebSocket benchmark issues
+- **ci**: Resolved clippy warnings across the codebase
 - **web**: Fixed duplicate `ConnectionState` export in messages/index.ts.
 - **web**: Fixed import path in authStore.test.ts.
 - **web**: Fixed mock AxiosResponse shape in messagesStore.test.ts.
 - **web**: Removed unused imports to pass strict TS checks.
 - **web**: npm audit now reports 0 vulnerabilities.
+
+### Security
+- Replaced Gitleaks with TruffleHog OSS for improved secret scanning
+- Fixed CI security checks and validation
+- Fixed npm vulnerabilities in web dependencies
+- Implemented P0 security improvements from review
 
 ## [0.1.0] - 2026-02-14
 

@@ -16,6 +16,7 @@ pub mod db;
 pub mod handlers;
 pub mod indexing;
 pub mod metrics;
+pub mod crypto;
 #[cfg(feature = "multi-tenant")]
 pub mod middleware;
 pub mod observability;

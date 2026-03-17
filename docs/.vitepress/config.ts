@@ -2,58 +2,65 @@ import { defineConfig } from 'vitepress'
 
 export default defineConfig({
   title: 'Nexis',
-  description: 'Enterprise-grade Real-time Collaboration Platform',
+  description: 'Enterprise-grade Real-time Collaboration Platform — 100K+ concurrent connections, cloud-native, AI-powered',
   lang: 'en-US',
   
-  // Ignore dead links for now
   ignoreDeadLinks: true,
-  
+
   head: [
     // Favicon and theme
     ['link', { rel: 'icon', type: 'image/svg+xml', href: '/images/logo.svg' }],
     ['meta', { name: 'theme-color', content: '#6366f1' }],
 
     // SEO meta tags
-    ['meta', { name: 'keywords', content: 'Nexis, real-time collaboration, WebSocket, Rust, cloud-native' }],
+    ['meta', { name: 'keywords', content: 'Nexis, real-time collaboration, WebSocket, Rust, cloud-native, AI, enterprise messaging' }],
     ['meta', { name: 'author', content: 'G-Brothers Group' }],
+    ['meta', { name: 'description', content: 'Nexis is an enterprise-grade real-time collaboration platform built with Rust and Tokio. Supports 100K+ concurrent WebSocket connections with AI-powered summaries, plugin system, and multi-tenancy.' }],
 
     // Open Graph
     ['meta', { property: 'og:type', content: 'website' }],
-    ['meta', { property: 'og:title', content: 'Nexis - Real-time Collaboration Platform' }],
-    ['meta', { property: 'og:description', content: 'Enterprise-grade, 100K+ concurrent connections' }],
+    ['meta', { property: 'og:title', content: 'Nexis - Enterprise Real-time Collaboration Platform' }],
+    ['meta', { property: 'og:description', content: '100K+ concurrent connections · AI-powered summaries · Plugin system · Multi-tenancy' }],
     ['meta', { property: 'og:image', content: 'https://gbrothersgroup.github.io/Nexis/images/og-image.png' }],
     ['meta', { property: 'og:url', content: 'https://gbrothersgroup.github.io/Nexis/' }],
+    ['meta', { property: 'og:site_name', content: 'Nexis' }],
 
     // Twitter Card
     ['meta', { name: 'twitter:card', content: 'summary_large_image' }],
-    ['meta', { name: 'twitter:title', content: 'Nexis - Real-time Collaboration Platform' }],
-    ['meta', { name: 'twitter:description', content: 'Enterprise-grade, 100K+ concurrent connections' }],
+    ['meta', { name: 'twitter:title', content: 'Nexis - Enterprise Real-time Collaboration Platform' }],
+    ['meta', { name: 'twitter:description', content: '100K+ concurrent connections · AI-powered summaries · Plugin system · Multi-tenancy' }],
     ['meta', { name: 'twitter:image', content: 'https://gbrothersgroup.github.io/Nexis/images/og-image.png' }],
 
     // Canonical URL
     ['link', { rel: 'canonical', href: 'https://gbrothersgroup.github.io/Nexis/' }],
+
+    // Google Analytics (replace G-XXXXXXXXXX with your actual ID)
+    ['script', { async: '', src: 'https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX' }],
+    ['script', {}, `window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'G-XXXXXXXXXX');`],
   ],
   
   themeConfig: {
     logo: '/images/logo.svg',
     siteTitle: 'Nexis',
     
-    // 自定义图标配置
     icon: {
       type: 'svg'
     },
     
     nav: [
       { text: 'Home', link: '/' },
-      { text: 'Getting Started', link: '/en/getting-started/development-guide' },
-      { text: 'Architecture', link: '/en/architecture/' },
-      { text: 'API Reference', link: '/en/api/metrics' },
+      { text: 'Quick Start', link: '/en/getting-started/quick-start' },
+      { text: 'Docs', link: '/en/architecture/' },
       {
         text: 'Resources',
         items: [
+          { text: 'Roadmap', link: '/en/roadmap' },
+          { text: 'Contributing', link: '/en/development/contributing' },
           { text: 'Security', link: '/en/security/audit-report' },
           { text: 'Performance', link: '/en/performance/benchmark-report' },
-          { text: 'Operations', link: '/en/operations/' }
         ]
       }
     ],
@@ -61,15 +68,16 @@ export default defineConfig({
     sidebar: {
       '/en/': [
         {
-          text: '📚 Documentation',
+          text: '📚 Introduction',
           items: [
-            { text: 'Introduction', link: '/en/' }
+            { text: 'Overview', link: '/en/' }
           ]
         },
         {
           text: '🚀 Getting Started',
           collapsed: false,
           items: [
+            { text: 'Quick Start (5 min)', link: '/en/getting-started/quick-start' },
             { text: 'Development Guide', link: '/en/getting-started/development-guide' }
           ]
         },
@@ -84,7 +92,7 @@ export default defineConfig({
         },
         {
           text: '📡 API Reference',
-          collapsed: false,
+          collapsed: true,
           items: [
             { text: 'Metrics API', link: '/en/api/metrics' },
             { text: 'Versioning', link: '/en/api/versioning' }
@@ -109,6 +117,14 @@ export default defineConfig({
           collapsed: true,
           items: [
             { text: 'Audit Report', link: '/en/security/audit-report' }
+          ]
+        },
+        {
+          text: '🤝 Community',
+          collapsed: true,
+          items: [
+            { text: 'Contributing Guide', link: '/en/development/contributing' },
+            { text: 'Roadmap', link: '/en/roadmap' }
           ]
         }
       ]

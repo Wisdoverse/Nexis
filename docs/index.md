@@ -11,7 +11,7 @@ hero:
   actions:
     - theme: brand
       text: 🚀 快速开始
-      link: /en/getting-started/development-guide
+      link: /en/getting-started/quick-start
     - theme: alt
       text: 📖 查看文档
       link: /en/architecture/
@@ -33,29 +33,29 @@ features:
     link: /en/security/audit-report
     linkText: 安全审计报告
   - icon:
+      src: /images/icon-ai.svg
+    title: AI 智能增强
+    details: 上下文智能摘要 · 情绪分析<br/>AI 消息路由<br/>多模型提供商支持
+    link: /en/roadmap
+    linkText: 路线图
+  - icon:
+      src: /images/icon-platform.svg
+    title: 插件系统
+    details: <strong>Wasm</strong> 沙箱隔离<br/>丰富的生命周期钩子<br/>插件市场 (即将推出)
+    link: /en/development/contributing
+    linkText: 贡献指南
+  - icon:
+      src: /images/icon-cloud.svg
+    title: 云原生 + 多租户
+    details: <strong>12-Factor App</strong> 完全合规<br/>Kubernetes Helm Charts<br/>租户隔离 & 数据分区
+    link: /en/operations/deployment
+    linkText: 部署指南
+  - icon:
       src: /images/icon-observability.svg
     title: 全链路可观测
     details: <strong>Prometheus</strong> 指标监控<br/>Grafana 可视化面板<br/>OpenTelemetry 分布式追踪
     link: /en/observability/tracing
     linkText: 可观测性指南
-  - icon:
-      src: /images/icon-cloud.svg
-    title: 云原生就绪
-    details: <strong>12-Factor App</strong> 完全合规<br/>Kubernetes Helm Charts<br/>HPA 自动扩缩容 (3-100 副本)
-    link: /en/operations/deployment
-    linkText: 部署指南
-  - icon:
-      src: /images/icon-ai.svg
-    title: AI 智能增强
-    details: 上下文智能摘要<br/>AI 消息路由<br/>多模型提供商支持
-    link: /en/architecture/components
-    linkText: 了解更多
-  - icon:
-      src: /images/icon-platform.svg
-    title: 跨平台支持
-    details: <strong>Web</strong> (React + Vite)<br/><strong>Mobile</strong> (React Native)<br/><strong>Desktop</strong> (Tauri) · CLI
-    link: /en/getting-started/development-guide
-    linkText: 开发指南
 ---
 
 <script setup>
@@ -63,7 +63,6 @@ import { onMounted } from 'vue'
 import { useRouter } from 'vitepress'
 
 onMounted(() => {
-  // Add animation classes
   const hero = document.querySelector('.VPHero')
   if (hero) {
     hero.classList.add('animate-fade-in')
@@ -73,6 +72,19 @@ onMounted(() => {
 
 <template>
   <div class="home-content">
+
+    <!-- Trusted By -->
+    <div class="trusted-by">
+      <p class="trusted-label">Trusted by teams at</p>
+      <div class="logo-grid">
+        <div class="logo-placeholder">🏢 TechCorp</div>
+        <div class="logo-placeholder">🏦 FinGroup</div>
+        <div class="logo-placeholder">🏥 HealthTech</div>
+        <div class="logo-placeholder">🚀 StartupX</div>
+        <div class="logo-placeholder">🎓 EduPlatform</div>
+      </div>
+    </div>
+
     <div class="stats-grid">
       <div class="stat-card">
         <div class="stat-number">100K+</div>
@@ -124,6 +136,89 @@ cargo run -p nexis-gateway</code></pre>
       </div>
     </div>
 
+    <!-- Comparison Table -->
+    <div class="comparison-section">
+      <h2>⚖️ Why Nexis?</h2>
+      <div class="comparison-table-wrapper">
+        <table class="comparison-table">
+          <thead>
+            <tr>
+              <th>Feature</th>
+              <th class="highlight-col">Nexis</th>
+              <th>Slack</th>
+              <th>Discord</th>
+              <th>Mattermost</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Max Concurrent Connections</td>
+              <td class="highlight-col"><strong>100K+</strong></td>
+              <td>~10K</td>
+              <td>~25K</td>
+              <td>~5K</td>
+            </tr>
+            <tr>
+              <td>Self-Hosted</td>
+              <td class="highlight-col">✅ Full</td>
+              <td>❌ Cloud only</td>
+              <td>⚠️ Limited</td>
+              <td>✅ Full</td>
+            </tr>
+            <tr>
+              <td>AI Summaries</td>
+              <td class="highlight-col">✅ Built-in</td>
+              <td>⚠️ Extra cost</td>
+              <td>❌</td>
+              <td>⚠️ Plugin</td>
+            </tr>
+            <tr>
+              <td>Plugin System (Wasm)</td>
+              <td class="highlight-col">✅ Sandboxed</td>
+              <td>⚠️ Node.js</td>
+              <td>⚠️ Bot API</td>
+              <td>⚠️ Go/React</td>
+            </tr>
+            <tr>
+              <td>Multi-Tenancy</td>
+              <td class="highlight-col">✅ Native</td>
+              <td>Enterprise</td>
+              <td>❌</td>
+              <td>⚠️ Workspaces</td>
+            </tr>
+            <tr>
+              <td>Open Source</td>
+              <td class="highlight-col">✅ MIT</td>
+              <td>❌ Proprietary</td>
+              <td>❌ Proprietary</td>
+              <td>✅ MIT/Proprietary</td>
+            </tr>
+            <tr>
+              <td>Language</td>
+              <td class="highlight-col">Rust</td>
+              <td>Scala/C++</td>
+              <td>Elixir/JS</td>
+              <td>Go/React</td>
+            </tr>
+            <tr>
+              <td>SSO / SAML</td>
+              <td class="highlight-col">✅ v0.3</td>
+              <td>✅ Enterprise</td>
+              <td>⚠️ Limited</td>
+              <td>✅ Enterprise</td>
+            </tr>
+            <tr>
+              <td>Sub-ms Message Latency</td>
+              <td class="highlight-col">✅ <1ms P99</td>
+              <td>~100ms</td>
+              <td>~50ms</td>
+              <td>~200ms</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
     <div class="badges-section">
       <h3>🏆 企业级认证</h3>
       <div class="badge-grid">
@@ -166,11 +261,14 @@ cargo run -p nexis-gateway</code></pre>
     </div>
 
     <div class="cta-section">
-      <a href="/en/getting-started/development-guide" class="cta-button primary">
+      <a href="/en/getting-started/quick-start" class="cta-button primary">
         🚀 开始使用
       </a>
       <a href="https://github.com/gbrothersgroup/Nexis" class="cta-button secondary">
         ⭐ GitHub
+      </a>
+      <a href="/en/roadmap" class="cta-button secondary">
+        🗺️ 路线图
       </a>
     </div>
   </div>
@@ -179,40 +277,22 @@ cargo run -p nexis-gateway</code></pre>
 <style>
 /* ===== 自定义首页样式 ===== */
 
-/* 动画 */
 @keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.7;
-  }
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
 }
 
 @keyframes gradient {
-  0% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0% 50%;
-  }
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }
 
-/* Hero 区域增强 */
 .VPHero {
   animation: fadeInUp 0.8s ease-out;
 }
@@ -243,7 +323,45 @@ cargo run -p nexis-gateway</code></pre>
   font-weight: 400;
 }
 
-/* 统计数据网格 */
+/* Trusted By */
+.trusted-by {
+  margin: 3rem auto;
+  max-width: 900px;
+  text-align: center;
+}
+
+.trusted-label {
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--vp-c-text-3);
+  margin-bottom: 1.5rem;
+}
+
+.logo-grid {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.logo-placeholder {
+  font-size: 1.1rem;
+  color: var(--vp-c-text-3);
+  padding: 0.75rem 1.5rem;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 8px;
+  background: var(--vp-c-bg-soft);
+  opacity: 0.7;
+  transition: opacity 0.3s ease;
+}
+
+.logo-placeholder:hover {
+  opacity: 1;
+}
+
+/* Stats */
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -267,9 +385,7 @@ cargo run -p nexis-gateway</code></pre>
 .stat-card::before {
   content: '';
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
+  top: 0; left: 0; right: 0;
   height: 4px;
   background: linear-gradient(90deg, #6366f1, #a855f7);
 }
@@ -296,7 +412,7 @@ cargo run -p nexis-gateway</code></pre>
   font-weight: 500;
 }
 
-/* 快速开始区域 */
+/* Quick Start */
 .quick-start-section {
   margin: 5rem auto;
   max-width: 1200px;
@@ -368,7 +484,67 @@ cargo run -p nexis-gateway</code></pre>
   background: transparent;
 }
 
-/* 徽章区域 */
+/* Comparison Table */
+.comparison-section {
+  margin: 5rem auto;
+  max-width: 1200px;
+  padding: 0 2rem;
+}
+
+.comparison-section h2 {
+  font-size: 2.5rem;
+  font-weight: 800;
+  margin-bottom: 2rem;
+  text-align: center;
+  background: linear-gradient(135deg, #6366f1, #a855f7);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.comparison-table-wrapper {
+  overflow-x: auto;
+  border-radius: 12px;
+  border: 1px solid var(--vp-c-divider);
+}
+
+.comparison-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+.comparison-table th,
+.comparison-table td {
+  padding: 0.85rem 1.2rem;
+  text-align: left;
+  border-bottom: 1px solid var(--vp-c-divider);
+}
+
+.comparison-table thead th {
+  background: var(--vp-c-bg-soft);
+  font-weight: 700;
+  color: var(--vp-c-text-1);
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.comparison-table tbody tr:hover {
+  background: var(--vp-c-bg-soft);
+}
+
+.comparison-table .highlight-col {
+  background: rgba(99, 102, 241, 0.08);
+  font-weight: 600;
+}
+
+.comparison-table thead .highlight-col {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(168, 85, 247, 0.15));
+  color: var(--vp-c-brand-1);
+}
+
+/* Badges */
 .badges-section {
   margin: 5rem auto;
   max-width: 1200px;
@@ -409,15 +585,8 @@ cargo run -p nexis-gateway</code></pre>
   box-shadow: 0 8px 30px rgba(99, 102, 241, 0.1);
 }
 
-.badge-icon {
-  font-size: 1.5rem;
-}
-
-.badge-text {
-  font-weight: 600;
-  color: var(--vp-c-text-1);
-}
-
+.badge-icon { font-size: 1.5rem; }
+.badge-text { font-weight: 600; color: var(--vp-c-text-1); }
 .badge-status {
   font-size: 0.85rem;
   color: var(--vp-c-brand-1);
@@ -427,7 +596,7 @@ cargo run -p nexis-gateway</code></pre>
   border-radius: 9999px;
 }
 
-/* 架构预览 */
+/* Architecture */
 .architecture-preview {
   margin: 5rem auto;
   max-width: 1200px;
@@ -453,10 +622,10 @@ cargo run -p nexis-gateway</code></pre>
   border: 1px solid var(--vp-c-divider);
 }
 
-/* CTA 按钮 */
+/* CTA */
 .cta-section {
   margin: 5rem auto;
-  max-width: 600px;
+  max-width: 700px;
   padding: 0 2rem;
   display: flex;
   gap: 1.5rem;
@@ -499,7 +668,7 @@ cargo run -p nexis-gateway</code></pre>
   background: var(--vp-c-brand-soft);
 }
 
-/* Feature 卡片增强 */
+/* Feature Cards */
 .VPFeature {
   border-radius: 16px !important;
   border: 1px solid var(--vp-c-divider);
@@ -514,65 +683,37 @@ cargo run -p nexis-gateway</code></pre>
   border-color: var(--vp-c-brand-1) !important;
 }
 
-.VPFeature .title {
-  font-size: 1.3rem !important;
-  font-weight: 700 !important;
-}
+.VPFeature .title { font-size: 1.3rem !important; font-weight: 700 !important; }
+.VPFeature .details { color: var(--vp-c-text-2); line-height: 1.7; }
 
-.VPFeature .details {
-  color: var(--vp-c-text-2);
-  line-height: 1.7;
-}
-
-/* 响应式 */
+/* Responsive */
 @media (max-width: 768px) {
-  .VPHero .name {
-    font-size: 3rem !important;
-  }
-  
-  .VPHero .text {
-    font-size: 1.5rem !important;
-  }
-  
-  .VPHero .tagline {
-    font-size: 1rem !important;
-  }
-  
-  .stat-number {
-    font-size: 2rem;
-  }
-  
+  .VPHero .name { font-size: 3rem !important; }
+  .VPHero .text { font-size: 1.5rem !important; }
+  .VPHero .tagline { font-size: 1rem !important; }
+  .stat-number { font-size: 2rem; }
   .quick-start-section h2,
   .badges-section h3,
-  .architecture-preview h3 {
-    font-size: 1.8rem;
-  }
+  .architecture-preview h3,
+  .comparison-section h2 { font-size: 1.8rem; }
+  .comparison-table { font-size: 0.8rem; }
+  .comparison-table th, .comparison-table td { padding: 0.6rem 0.8rem; }
+  .logo-grid { gap: 1rem; }
 }
 
-/* 暗黑模式优化 */
-.dark {
-  .stat-card::before {
-    background: linear-gradient(90deg, #818cf8, #c084fc);
-  }
-  
-  .VPFeature:hover {
-    box-shadow: 0 20px 60px rgba(129, 140, 248, 0.2) !important;
-  }
+.dark .stat-card::before {
+  background: linear-gradient(90deg, #818cf8, #c084fc);
+}
+.dark .VPFeature:hover {
+  box-shadow: 0 20px 60px rgba(129, 140, 248, 0.2) !important;
 }
 
-/* 平滑滚动 */
-html {
-  scroll-behavior: smooth;
-}
-
-/* 全局字体优化 */
+html { scroll-behavior: smooth; }
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
-
-/* 代码字体 */
 code, pre {
   font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
 }
@@ -584,9 +725,7 @@ function copyCode(button) {
   const code = codeBlock.querySelector('code').textContent;
   navigator.clipboard.writeText(code).then(() => {
     button.textContent = '已复制!';
-    setTimeout(() => {
-      button.textContent = '复制';
-    }, 2000);
+    setTimeout(() => { button.textContent = '复制'; }, 2000);
   });
 }
 </script>

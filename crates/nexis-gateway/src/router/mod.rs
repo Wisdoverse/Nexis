@@ -18,6 +18,7 @@ use tracing::Instrument;
 use uuid::Uuid;
 
 use crate::auth::AuthenticatedUser;
+use crate::crypto::DataEncryption;
 use crate::metrics::{
     export as export_metrics, HTTP_LATENCY, HTTP_REQUESTS_TOTAL, HTTP_RESPONSES, MESSAGES_SENT,
     OPERATION_ERRORS_TOTAL, OPERATION_LATENCY, OPERATION_THROUGHPUT_TOTAL, ROOMS_ACTIVE,
@@ -35,6 +36,7 @@ pub(crate) struct AppState {
     room_members: Arc<RwLock<HashMap<String, Vec<String>>>>,
     write_gate: Arc<Semaphore>,
     search_service: Option<Arc<dyn SearchService>>,
+    encryption: Option<DataEncryption>,
     #[cfg(feature = "multi-tenant")]
     tenant_store: TenantStore,
 }
@@ -47,6 +49,7 @@ impl Default for AppState {
             room_members: Arc::new(RwLock::new(HashMap::new())),
             write_gate: Arc::new(Semaphore::new(2_048)),
             search_service: None,
+            encryption: DataEncryption::from_env(),
             #[cfg(feature = "multi-tenant")]
             tenant_store: TenantStore::new(),
         }
@@ -554,7 +557,15 @@ async fn send_message(
     let message = StoredMessage {
         id: format!("msg_{}", Uuid::new_v4().simple()),
         sender: payload.sender,
-        text: payload.text,
+        text: if let Some(ref enc) = state.encryption {
+            enc.encrypt_string(&payload.text)
+                .unwrap_or_else(|e| {
+                    tracing::error!("encryption failed: {}\n", e);
+                    payload.text.clone()
+                })
+        } else {
+            payload.text
+        },
         reply_to: payload.reply_to,
     };
     let response = SendMessageResponse {
@@ -599,13 +610,29 @@ async fn get_room(
     let room = room.clone();
     drop(rooms);
 
-    let messages = state
+    let raw_messages = state
         .room_messages
         .read()
         .await
         .get(&id)
         .cloned()
         .unwrap_or_default();
+
+    // Decrypt messages if encryption is enabled
+    let messages: Vec<StoredMessage> = if let Some(ref enc) = state.encryption {
+        raw_messages
+            .into_iter()
+            .map(|mut msg| {
+                msg.text = enc.decrypt_string(&msg.text).unwrap_or_else(|e| {
+                    tracing::warn!("failed to decrypt message {}: {}", msg.id, e);
+                    msg.text.clone()
+                });
+                msg
+            })
+            .collect()
+    } else {
+        raw_messages
+    };
 
     #[cfg(feature = "multi-tenant")]
     let tenant_id = room.tenant_id.clone();

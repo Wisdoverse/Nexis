@@ -58,6 +58,11 @@ bytes = { workspace = true }
 sqlx = { workspace = true, optional = true }
 
 # Security
+aes-gcm = "0.10"
+argon2 = "0.5"
+base64 = "0.22"
+hex = "0.4"
+rand = "0.8"
 jsonwebtoken = { workspace = true }
 
 # Metrics
