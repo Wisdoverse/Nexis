@@ -1,0 +1,23 @@
+[package]
+name = "nexis-plugin"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Plugin system for Nexis - extensible hooks, commands, and adapters"
+
+[dependencies]
+async-trait.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+uuid.workspace = true
+nexis-core.workspace = true
+nexis-protocol.workspace = true
+
+[dev-dependencies]
+tokio-test.workspace = true
+
+[lints]
+workspace = true

@@ -16,6 +16,7 @@ members = [
   "crates/nexis-doc",
   "crates/nexis-task",
   "crates/nexis-calendar",
+  "crates/nexis-plugin",
 ]
 resolver = "2"
 
@@ -107,6 +108,7 @@ nexis-meeting = { path = "crates/nexis-meeting" }
 nexis-doc = { path = "crates/nexis-doc" }
 nexis-task = { path = "crates/nexis-task" }
 nexis-calendar = { path = "crates/nexis-calendar" }
+nexis-plugin = { path = "crates/nexis-plugin" }
 
 # Release profile
 [profile.release]
@@ -145,3 +147,7 @@ many_single_char_names = "allow"
 similar_names = "allow"
 struct_excessive_bools = "allow"
 cargo_common_metadata = "allow"
+
+[[example]]
+name = "plugins/hello_world"
+path = "examples/plugins/hello_world.rs"

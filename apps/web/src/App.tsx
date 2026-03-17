@@ -1,13 +1,20 @@
-import { RouterProvider } from 'react-router-dom'
-import { router } from './app/router'
-import { Providers } from './app/providers'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { useAuth } from './hooks/useAuth';
+import Login from './pages/Login';
+import Home from './pages/Home';
 
-function App() {
-  return (
-    <Providers>
-      <RouterProvider router={router} />
-    </Providers>
-  )
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
+  return user ? <>{children}</> : <Navigate to="/login" />;
 }
 
-export default App
+export default function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+      </Routes>
+    </BrowserRouter>
+  );
+}
