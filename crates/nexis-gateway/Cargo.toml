@@ -66,6 +66,7 @@ rand = "0.8"
 jsonwebtoken = { workspace = true }
 
 # Metrics
+dashmap = "6"
 prometheus = "0.14"
 lazy_static = "1.4"
 
