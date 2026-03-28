@@ -332,7 +332,7 @@ fn client_key(req: &Request) -> String {
 ///
 /// Use with `axum::middleware::from_fn_with_state`:
 ///
-/// ```ignore
+/// ```text
 /// let limiter = std::sync::Arc::new(RateLimiter::from_env());
 /// let app = Router::new()
 ///     .route("/*", get(handler))

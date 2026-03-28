@@ -1,0 +1,19 @@
+[package]
+name = "nexis-billing"
+version.workspace = true
+edition.workspace = true
+description = "Async billing & request logging for Nexis"
+
+[dependencies]
+rusqlite = { version = "0.31", features = ["bundled"] }
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+uuid = { workspace = true }
+chrono = { workspace = true }
+tracing = { workspace = true }
+sha2 = "0.10"
+
+[dev-dependencies]
+tokio-test = { workspace = true }
+tempfile = "3"
