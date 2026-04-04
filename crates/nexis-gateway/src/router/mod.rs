@@ -1,7 +1,11 @@
 //! Message routing for Nexus Gateway
 
+pub mod ws_router;
+
+pub use ws_router::{ConnectionTx, MemberId, RoomId, RouterState};
+
 use axum::{
-    extract::ws::{Message, WebSocket, WebSocketUpgrade},
+    extract::ws::WebSocketUpgrade,
     extract::{Path, Query, State},
     http::{HeaderValue, Request, StatusCode},
     middleware::{self, Next},
@@ -13,7 +17,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Instant;
-use tokio::sync::{mpsc, RwLock, Semaphore};
+use tokio::sync::{RwLock, Semaphore};
 use tracing::Instrument;
 use uuid::Uuid;
 
@@ -478,9 +482,7 @@ async fn websocket_handler(
     let legacy_token = query.token;
     if legacy_token.is_some() {
         tracing::warn!(
-            "DEPRECATION WARNING: WebSocket authentication via query parameter is deprecated. \
-             Use first-message authentication instead. Token in URL may be logged and expose credentials. \
-             Migrate to sending {{\\"type\\":\\"auth\\",\\"token\\":\\"Bearer xxx\\"}} as the first message."
+            "DEPRECATION WARNING: WebSocket auth via query parameter is deprecated. Use first-message auth instead."
         );
     }
 
@@ -965,156 +967,6 @@ async fn delete_room(
 }
 
 /// Handle WebSocket connection
-async fn handle_socket(socket: WebSocket, legacy_token: Option<String>) {
-    use crate::connection::{
-        create_auth_timeout_message, parse_client_message, serialize_server_message,
-        ConnectionState, MessageResult, ServerMessage, WebSocketAuthenticator, AUTH_TIMEOUT,
-    };
-    use futures::{SinkExt, StreamExt};
-    use tokio::time::timeout;
-
-    let authenticator = WebSocketAuthenticator::from_env();
-    let (mut sender, mut receiver) = socket.split();
-    let (tx, mut rx) = mpsc::channel::<Message>(256);
-
-    // If legacy token is provided, pre-authenticate
-    let state = if let Some(token) = legacy_token {
-        // Attempt to authenticate with the legacy token
-        match authenticator.verify_token(&token) {
-            Ok(claims) => {
-                tracing::info!(
-                    member_id = %claims.sub,
-                    "WebSocket authenticated via legacy query parameter"
-                );
-                // Send success message
-                let msg = ServerMessage::AuthSuccess {
-                    member_id: claims.sub.clone(),
-                    member_type: claims.member_type.clone(),
-                };
-                if let Ok(json) = serialize_server_message(&msg) {
-                    let _ = tx.send(Message::Text(json)).await;
-                }
-                ConnectionState::Authenticated
-            }
-            Err(e) => {
-                tracing::warn!("Legacy token validation failed: {}", e);
-                let msg = ServerMessage::AuthError {
-                    message: format!("Authentication failed: {}", e),
-                    code: Some("AUTH_FAILED".to_string()),
-                };
-                if let Ok(json) = serialize_server_message(&msg) {
-                    let _ = tx.send(Message::Text(json)).await;
-                }
-                // Still allow connection but require first-message auth
-                ConnectionState::Unauthenticated
-            }
-        }
-    } else {
-        ConnectionState::Unauthenticated
-    };
-
-    let writer = tokio::spawn(async move {
-        while let Some(message) = rx.recv().await {
-            if sender.send(message).await.is_err() {
-                break;
-            }
-        }
-    });
-
-    // Save initial auth state before async block captures it mutably
-    let was_unauthenticated = state == ConnectionState::Unauthenticated;
-
-    // Authentication timeout - wrap the entire message loop
-    let tx_timeout = tx.clone();
-    let auth_timeout_future = async move {
-        let mut conn_state = state;
-        while let Some(msg) = receiver.next().await {
-            match msg {
-                Ok(Message::Text(text)) => {
-                    tracing::debug!("Received: {}", text);
-
-                    // Parse the message
-                    match parse_client_message(&text) {
-                        Ok(client_msg) => {
-                            match authenticator.process_message(conn_state, &client_msg) {
-                                MessageResult::Response(server_msg) => {
-                                    // Check if this was a successful auth
-                                    if let ServerMessage::AuthSuccess { .. } = &server_msg {
-                                        conn_state = ConnectionState::Authenticated;
-                                    }
-
-                                    if let Ok(json) = serialize_server_message(&server_msg) {
-                                        if tx.send(Message::Text(json)).await.is_err() {
-                                            break;
-                                        }
-                                    }
-                                }
-                                MessageResult::Authenticated(session) => {
-                                    tracing::info!(
-                                        member_id = %session.member_id,
-                                        "WebSocket authenticated"
-                                    );
-                                    conn_state = ConnectionState::Authenticated;
-                                }
-                                MessageResult::CloseConnection => {
-                                    tracing::debug!("Closing connection by request");
-                                    break;
-                                }
-                                MessageResult::NoResponse => {
-                                    // Message handled, no response needed
-                                    // In a full implementation, this would handle room joins, etc.
-                                }
-                            }
-                        }
-                        Err(e) => {
-                            tracing::warn!("Failed to parse WebSocket message: {}", e);
-                            let error_msg = ServerMessage::Error {
-                                message: format!("Invalid message format: {}", e),
-                                code: Some("PARSE_ERROR".to_string()),
-                            };
-                            if let Ok(json) = serialize_server_message(&error_msg) {
-                                let _ = tx.send(Message::Text(json)).await;
-                            }
-                        }
-                    }
-                }
-                Ok(Message::Close(_)) => {
-                    tracing::debug!("Client disconnected");
-                    break;
-                }
-                Err(e) => {
-                    tracing::error!("WebSocket error: {}", e);
-                    break;
-                }
-                _ => {}
-            }
-        }
-        conn_state
-    };
-
-    // Apply timeout only if not already authenticated via legacy token
-    if was_unauthenticated {
-        match timeout(AUTH_TIMEOUT, auth_timeout_future).await {
-            Ok(_final_state) => {
-                // Connection closed normally
-            }
-            Err(_) => {
-                // Timeout - send error and close
-                tracing::warn!("WebSocket authentication timeout");
-                let _ = tx_timeout
-                    .send(Message::Text(create_auth_timeout_message()))
-                    .await;
-                let _ = tx_timeout.send(Message::Close(None)).await;
-            }
-        }
-    } else {
-        // Already authenticated, run without timeout
-        auth_timeout_future.await;
-    }
-
-    writer.abort();
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
