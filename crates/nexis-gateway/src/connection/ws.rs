@@ -20,6 +20,7 @@ use serde::Deserialize;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::{mpsc, RwLock};
+use tokio::time::Instant;
 
 use crate::auth::JwtConfig;
 use crate::connection::{
@@ -27,6 +28,11 @@ use crate::connection::{
     AuthenticatedSession, ConnectionState, MessageResult, ServerMessage, WebSocketAuthenticator,
     AUTH_TIMEOUT,
 };
+
+/// Maximum messages per second allowed per connection
+const MAX_MESSAGES_PER_SECOND: u32 = 10;
+/// Time window for rate limiting (1 second)
+const RATE_LIMIT_WINDOW_SECS: u64 = 1;
 
 /// Query parameters for WebSocket connection
 #[derive(Debug, Clone, Deserialize)]
@@ -46,6 +52,44 @@ pub struct WebSocketSender {
     pub tx: mpsc::Sender<Message>,
     /// Member type (human/ai)
     pub member_type: String,
+}
+
+/// Simple token bucket rate limiter for per-connection message rate limiting
+#[derive(Debug)]
+struct RateLimiter {
+    /// Number of messages sent in the current window
+    count: u32,
+    /// Start of the current time window
+    window_start: Instant,
+}
+
+impl RateLimiter {
+    fn new() -> Self {
+        Self {
+            count: 0,
+            window_start: Instant::now(),
+        }
+    }
+
+    /// Check if a message is allowed under the rate limit
+    /// Returns true if allowed, false if rate limited
+    fn check_and_increment(&mut self) -> bool {
+        let now = Instant::now();
+        let elapsed = now.duration_since(self.window_start);
+
+        // Reset counter if window has passed
+        if elapsed.as_secs() >= RATE_LIMIT_WINDOW_SECS {
+            self.count = 0;
+            self.window_start = now;
+        }
+
+        if self.count < MAX_MESSAGES_PER_SECOND {
+            self.count += 1;
+            true
+        } else {
+            false
+        }
+    }
 }
 
 /// WebSocket connection state shared across handlers
@@ -304,10 +348,30 @@ async fn handle_socket(socket: WebSocket, state: WebSocketState) {
 
             tracing::info!(member_id = %member_id, "WebSocket authenticated, entering message loop");
 
+            // Rate limiter for this connection
+            let mut rate_limiter = RateLimiter::new();
+
             // Continue handling messages in a loop (same as handle_authenticated_socket)
             while let Some(msg) = receiver.next().await {
                 match msg {
                     Ok(Message::Text(text)) => {
+                        // Check rate limit
+                        if !rate_limiter.check_and_increment() {
+                            tracing::warn!(
+                                member_id = %member_id,
+                                max_per_second = MAX_MESSAGES_PER_SECOND,
+                                "Rate limit exceeded, closing connection"
+                            );
+                            let _ = tx
+                                .send(Message::Text(
+                                    r#"{"type":"error","message":"Rate limit exceeded"}"#
+                                        .to_string(),
+                                ))
+                                .await;
+                            let _ = tx.send(Message::Close(None)).await;
+                            break;
+                        }
+
                         tracing::debug!(member_id = %member_id, "Received: {}", text);
 
                         match parse_client_message(&text) {
@@ -397,10 +461,29 @@ async fn handle_authenticated_socket(
         }
     });
 
+    // Rate limiter for this connection
+    let mut rate_limiter = RateLimiter::new();
+
     // Handle incoming messages
     while let Some(msg) = receiver.next().await {
         match msg {
             Ok(Message::Text(text)) => {
+                // Check rate limit
+                if !rate_limiter.check_and_increment() {
+                    tracing::warn!(
+                        member_id = %member_id,
+                        max_per_second = MAX_MESSAGES_PER_SECOND,
+                        "Rate limit exceeded, closing connection"
+                    );
+                    let _ = tx
+                        .send(Message::Text(
+                            r#"{"type":"error","message":"Rate limit exceeded"}"#.to_string(),
+                        ))
+                        .await;
+                    let _ = tx.send(Message::Close(None)).await;
+                    break;
+                }
+
                 tracing::debug!(member_id = %member_id, "Received: {}", text);
 
                 match parse_client_message(&text) {

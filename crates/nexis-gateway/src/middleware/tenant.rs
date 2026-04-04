@@ -359,7 +359,10 @@ impl InMemoryTenantStore {
 
     /// Register a tenant.
     pub fn register(&self, id: Uuid, slug: String) {
-        let mut tenants = self.tenants.write().unwrap();
+        let mut tenants = self.tenants.write().unwrap_or_else(|e| {
+            tracing::error!("Tenant lock poisoned, recovering: {}", e);
+            e.into_inner()
+        });
         if !tenants.iter().any(|(i, _)| i == &id) {
             tenants.push((id, slug));
         }
@@ -367,7 +370,10 @@ impl InMemoryTenantStore {
 
     /// Look up a tenant by ID.
     pub fn get_by_id(&self, id: Uuid) -> Option<String> {
-        let tenants = self.tenants.read().unwrap();
+        let tenants = self.tenants.read().unwrap_or_else(|e| {
+            tracing::error!("Tenant lock poisoned, recovering: {}", e);
+            e.into_inner()
+        });
         tenants
             .iter()
             .find(|(i, _)| i == &id)
@@ -376,7 +382,10 @@ impl InMemoryTenantStore {
 
     /// Look up a tenant by slug.
     pub fn get_by_slug(&self, slug: &str) -> Option<Uuid> {
-        let tenants = self.tenants.read().unwrap();
+        let tenants = self.tenants.read().unwrap_or_else(|e| {
+            tracing::error!("Tenant lock poisoned, recovering: {}", e);
+            e.into_inner()
+        });
         tenants.iter().find(|(_, s)| s == slug).map(|(i, _)| *i)
     }
 }

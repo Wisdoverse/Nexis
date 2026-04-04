@@ -5,6 +5,8 @@
 
 #![allow(dead_code)]
 
+use std::sync::OnceLock;
+
 use axum::{
     extract::FromRequestParts,
     http::{request::Parts, StatusCode},
@@ -63,6 +65,31 @@ impl JwtConfig {
             audience,
             expiry_seconds: 3600,
         }
+    }
+
+    /// Get the global cached JwtConfig instance
+    /// 
+    /// This initializes the config from environment variables on first call
+    /// and caches it for subsequent calls.
+    pub fn cached() -> &'static Self {
+        static JWT_CONFIG: OnceLock<JwtConfig> = OnceLock::new();
+        JWT_CONFIG.get_or_init(|| {
+            let secret = std::env::var("JWT_SECRET").unwrap_or_else(|_| {
+                // Generate a random secret that will be invalid after restart
+                let random_secret = uuid::Uuid::new_v4().to_string();
+                tracing::warn!(
+                    "JWT_SECRET environment variable not set. Using randomly generated secret. \
+                     All tokens will be invalid after server restart. \
+                     Set JWT_SECRET for persistent authentication."
+                );
+                random_secret
+            });
+            JwtConfig::new(
+                &secret,
+                std::env::var("JWT_ISSUER").unwrap_or_else(|_| "nexis".to_string()),
+                std::env::var("JWT_AUDIENCE").unwrap_or_else(|_| "nexis".to_string()),
+            )
+        })
     }
 
     pub fn generate_token(&self, member_id: &str, member_type: &str) -> Result<String, AuthError> {
@@ -171,28 +198,12 @@ where
 
         let token = &header_value[7..];
 
-        // Use test config in test environment, production config otherwise
+        // Use test config in test environment, cached production config otherwise
         #[cfg(test)]
         let config = JwtConfig::new("test-secret", "test".to_string(), "test".to_string());
 
         #[cfg(not(test))]
-        let config = {
-            let secret = std::env::var("JWT_SECRET").unwrap_or_else(|_| {
-                // Generate a random secret that will be invalid after restart
-                let random_secret = uuid::Uuid::new_v4().to_string();
-                tracing::warn!(
-                    "JWT_SECRET environment variable not set. Using randomly generated secret. \
-                     All tokens will be invalid after server restart. \
-                     Set JWT_SECRET for persistent authentication."
-                );
-                random_secret
-            });
-            JwtConfig::new(
-                &secret,
-                std::env::var("JWT_ISSUER").unwrap_or_else(|_| "nexis".to_string()),
-                std::env::var("JWT_AUDIENCE").unwrap_or_else(|_| "nexis".to_string()),
-            )
-        };
+        let config = JwtConfig::cached();
 
         let claims = config
             .verify_token(token)

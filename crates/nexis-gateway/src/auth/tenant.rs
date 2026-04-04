@@ -139,19 +139,28 @@ impl TenantStore {
     }
 
     pub fn register_tenant(&self, tenant_id: String) {
-        let mut tenants = self.tenants.write().unwrap();
+        let mut tenants = self.tenants.write().unwrap_or_else(|e| {
+            tracing::error!("Tenant lock poisoned, recovering: {}", e);
+            e.into_inner()
+        });
         if !tenants.contains(&tenant_id) {
             tenants.push(tenant_id);
         }
     }
 
     pub fn tenant_exists(&self, tenant_id: &str) -> bool {
-        let tenants = self.tenants.read().unwrap();
+        let tenants = self.tenants.read().unwrap_or_else(|e| {
+            tracing::error!("Tenant lock poisoned, recovering: {}", e);
+            e.into_inner()
+        });
         tenants.iter().any(|t| t == tenant_id)
     }
 
     pub fn list_tenants(&self) -> Vec<String> {
-        let tenants = self.tenants.read().unwrap();
+        let tenants = self.tenants.read().unwrap_or_else(|e| {
+            tracing::error!("Tenant lock poisoned, recovering: {}", e);
+            e.into_inner()
+        });
         tenants.clone()
     }
 }
