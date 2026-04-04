@@ -18,6 +18,7 @@ use tracing::Instrument;
 use uuid::Uuid;
 
 use crate::auth::AuthenticatedUser;
+use crate::connection::WebSocketState;
 use crate::crypto::DataEncryption;
 use crate::metrics::{
     export as export_metrics, HTTP_LATENCY, HTTP_REQUESTS_TOTAL, HTTP_RESPONSES, MESSAGES_SENT,
@@ -37,6 +38,7 @@ pub(crate) struct AppState {
     write_gate: Arc<Semaphore>,
     search_service: Option<Arc<dyn SearchService>>,
     encryption: Option<DataEncryption>,
+    ws_state: WebSocketState,
     #[cfg(feature = "multi-tenant")]
     tenant_store: TenantStore,
 }
@@ -50,6 +52,7 @@ impl Default for AppState {
             write_gate: Arc::new(Semaphore::new(2_048)),
             search_service: None,
             encryption: DataEncryption::from_env(),
+            ws_state: WebSocketState::new(),
             #[cfg(feature = "multi-tenant")]
             tenant_store: TenantStore::new(),
         }
@@ -77,6 +80,10 @@ impl AppState {
     #[allow(dead_code)]
     pub fn search_service(&self) -> &Option<Arc<dyn SearchService>> {
         &self.search_service
+    }
+    #[allow(dead_code)]
+    pub fn ws_state(&self) -> &WebSocketState {
+        &self.ws_state
     }
     fn with_search_service(mut self, service: Arc<dyn SearchService>) -> Self {
         self.search_service = Some(service);
@@ -460,21 +467,25 @@ struct WebSocketAuthQuery {
 
 /// WebSocket handler
 async fn websocket_handler(
+    State(state): State<SharedState>,
     ws: WebSocketUpgrade,
     Query(query): Query<WebSocketAuthQuery>,
 ) -> Response {
+    // Use the new ws module's upgrade handler
+    let ws_state = state.ws_state.clone();
+    
     // Check for deprecated token in query parameter
     let legacy_token = query.token;
     if legacy_token.is_some() {
         tracing::warn!(
             "DEPRECATION WARNING: WebSocket authentication via query parameter is deprecated. \
              Use first-message authentication instead. Token in URL may be logged and expose credentials. \
-             Migrate to sending {{\"type\":\"auth\",\"token\":\"Bearer xxx\"}} as the first message."
+             Migrate to sending {{\\"type\\":\\"auth\\",\\"token\\":\\"Bearer xxx\\"}} as the first message."
         );
     }
 
-    // Pass the optional legacy token to the socket handler
-    ws.on_upgrade(move |socket| handle_socket(socket, legacy_token))
+    // Use new ws module for upgrade
+    crate::connection::ws::websocket_upgrade_with_state(ws, Query(crate::connection::ws::WebSocketQuery { token: legacy_token }), ws_state).await
 }
 
 #[tracing::instrument(

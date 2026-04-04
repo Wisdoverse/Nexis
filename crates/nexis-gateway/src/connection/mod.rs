@@ -5,6 +5,7 @@
 
 mod auth;
 mod pool;
+pub mod ws;
 
 pub use pool::{BroadcastMessage, Connection, ConnectionId, PoolStats, ShardedConnectionManager};
 
@@ -12,6 +13,10 @@ pub use auth::{
     create_auth_timeout_message, parse_client_message, serialize_server_message,
     AuthenticatedSession, ClientMessage, ConnectionState, MessageResult, ServerMessage,
     WebSocketAuthenticator, AUTH_TIMEOUT, AUTH_TIMEOUT_SECS,
+};
+
+pub use ws::{
+    websocket_upgrade, websocket_routes, WebSocketQuery, WebSocketSender, WebSocketState,
 };
 
 // Legacy exports for backward compatibility
