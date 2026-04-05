@@ -1,0 +1,9 @@
+{
+  "name": "nexis-monorepo",
+  "private": true,
+  "pnpm": {
+    "overrides": {
+      "esbuild": "^0.25.0"
+    }
+  }
+}
