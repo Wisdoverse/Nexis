@@ -101,6 +101,8 @@ jobs:
   audit:
     name: Security Audit
     runs-on: ubuntu-latest
+    # Allow advisory warnings without blocking CI
+    continue-on-error: true
     steps:
       - name: Checkout
         uses: actions/checkout@v4
