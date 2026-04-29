@@ -10,7 +10,7 @@ For the canonical repository policy, see
 ## Development Requirements
 
 - Rust stable
-- Node.js `>=20.19.0`
+- Node.js `24.x`
 - pnpm `>=10.30.0`
 - Docker or Docker Compose for local services
 

@@ -5,7 +5,7 @@
 ## 前置要求
 
 - Rust stable
-- Node.js `>=20.19.0`
+- Node.js `24.x`
 - pnpm `>=10.30.0`
 - 如需容器化运行 gateway，安装 Docker 或 Docker Compose
 

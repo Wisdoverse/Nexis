@@ -5,7 +5,7 @@
 ## 环境要求
 
 - Rust stable，并安装 `rustfmt` 和 `clippy`
-- Node.js `>=20.19.0`
+- Node.js `24.x`
 - pnpm `>=10.30.0`
 - Docker 或 Docker Compose，用于测试容器化服务
 

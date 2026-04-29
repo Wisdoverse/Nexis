@@ -21,7 +21,7 @@ Wisdoverse Nexus works best in repositories where Rust, Node, Expo, Docker, and
 documentation checks are reproducible from a fresh checkout.
 
 - Rust stable
-- Node.js `>=20.19.0`
+- Node.js `24.x`
 - pnpm `>=10.30.0`
 - Docker or Docker Compose for containerized local runs
 

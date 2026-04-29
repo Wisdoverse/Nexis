@@ -4,7 +4,7 @@ React + Vite client for Wisdoverse Nexus.
 
 ## Requirements
 
-- Node.js `>=20.19.0`
+- Node.js `24.x`
 - pnpm `>=10.30.0`
 
 ## Development

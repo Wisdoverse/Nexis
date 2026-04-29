@@ -12,7 +12,7 @@ Install JavaScript dependencies from the repository root:
 pnpm install --frozen-lockfile --ignore-scripts
 ```
 
-Use `cargo check --workspace` for Rust compile checks, `cargo test --workspace` for Rust tests, and `cargo clippy --workspace --all-targets -- -D warnings` for strict linting. Run `cargo fmt --all -- --check` before submitting Rust changes. Build the web app with `pnpm --filter @wisdoverse/nexus-web build`, the TypeScript SDK with `pnpm --filter @wisdoverse/nexus-sdk build`, and docs with `pnpm --dir docs docs:build`. Mobile checks use `pnpm --filter @wisdoverse/nexus-mobile typecheck`, `pnpm --filter @wisdoverse/nexus-mobile test`, and `pnpm --filter @wisdoverse/nexus-mobile exec expo install --check`.
+Use Node.js 24.x with pnpm `>=10.30.0`. Use `cargo check --workspace` for Rust compile checks, `cargo test --workspace` for Rust tests, and `cargo clippy --workspace --all-targets -- -D warnings` for strict linting. Run `cargo fmt --all -- --check` before submitting Rust changes. Build the web app with `pnpm --filter @wisdoverse/nexus-web build`, the TypeScript SDK with `pnpm --filter @wisdoverse/nexus-sdk build`, and docs with `pnpm --dir docs docs:build`. Mobile checks use `pnpm --filter @wisdoverse/nexus-mobile typecheck`, `pnpm --filter @wisdoverse/nexus-mobile test`, and `pnpm --filter @wisdoverse/nexus-mobile exec expo install --check`.
 
 ## Coding Style & Naming Conventions
 

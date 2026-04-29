@@ -18,7 +18,7 @@ Wisdoverse Nexus 适合在全新 checkout 中复现 Rust、Node、Expo、Docker 
 检查。
 
 - Rust stable
-- Node.js `>=20.19.0`
+- Node.js `24.x`
 - pnpm `>=10.30.0`
 - Docker 或 Docker Compose，用于容器化本地运行
 
